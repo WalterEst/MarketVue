@@ -1,14 +1,14 @@
 <script setup>
 import { computed } from 'vue'
 import { RouterView } from 'vue-router'
-import AppNavbar from './components/AppNavbar.vue'
+import Navbar from './components/Navbar.vue'
 
 const currentYear = computed(() => new Date().getFullYear())
 </script>
 
 <template>
   <div class="app-shell">
-    <AppNavbar />
+  <Navbar />
     <main class="app-main">
       <RouterView />
     </main>

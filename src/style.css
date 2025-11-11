@@ -90,10 +90,10 @@ section {
 }
 
 .card {
-  background: white;
-  border-radius: 1rem;
-  padding: 1.5rem;
-  box-shadow: 0 2px 8px rgba(16, 55, 92, 0.08);
+  background: #fff;
+  border-radius: 1.25rem;
+  padding: 1.75rem;
+  box-shadow: 0 16px 32px rgba(16, 55, 92, 0.08);
   border: 1px solid rgba(16, 55, 92, 0.08);
 }
 
@@ -121,28 +121,33 @@ section {
 /* Botones */
 
 .btn {
-  padding: 0.7rem 1.2rem;
   border: none;
-  border-radius: 0.6rem;
-  font-weight: 600;
+  border-radius: 999px;
+  padding: 0.75rem 1.8rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 0.95rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn--primary {
+  background: linear-gradient(135deg, #184d47, #0b5394);
+  color: #fff;
+}
+
+.btn--primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 30px rgba(16, 55, 92, 0.28);
 }
 
 .btn--ghost {
-  background: rgba(16, 55, 92, 0.08);
-  color: #10375c;
-  border: 1px solid rgba(16, 55, 92, 0.15);
-}
-
-.btn--ghost:hover:not([disabled]) {
-  background: rgba(16, 55, 92, 0.15);
-}
-
-.btn--ghost[disabled] {
-  opacity: 0.6;
-  cursor: not-allowed;
+  background: #fff;
+  border: 1px solid rgba(16, 55, 92, 0.18);
+  color: #184d47;
 }
 
 /* Pills/Badges */

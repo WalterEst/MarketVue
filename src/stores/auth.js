@@ -1,4 +1,4 @@
-import { reactive } from 'vue';
+import { reactive, toRefs } from 'vue';
 
 // Estado de autenticación
 const state = reactive({
@@ -8,7 +8,6 @@ const state = reactive({
 
 export function useAuth() {
   const login = async (email, password) => {
-    // Implementar login
     state.isLogged = true;
   };
 
@@ -17,10 +16,8 @@ export function useAuth() {
     state.user = null;
   };
 
-  return {
-    isLogged: state.isLogged,
-    user: state.user,
-    login,
-    logout,
-  };
+  state.login = login;
+  state.logout = logout;
+
+  return state;
 }
