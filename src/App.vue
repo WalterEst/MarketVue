@@ -7,9 +7,9 @@ const currentYear = computed(() => new Date().getFullYear())
 </script>
 
 <template>
-  <div class="layout">
+  <div class="app-shell">
     <AppNavbar />
-    <main>
+    <main class="app-main">
       <RouterView />
     </main>
     <footer>

@@ -5,6 +5,7 @@ const mockPosts = [
     title: 'Tomates Cherry orgánicos',
     price: 3200,
     description: 'Tomates cherry frescos de cultivo orgánico, ideales para ensaladas y decoración.',
+    seller: 'Agrícola San Pedro',
     isActive: true,
   },
   {
@@ -12,6 +13,7 @@ const mockPosts = [
     title: 'Lechugas de temporada',
     price: 1800,
     description: 'Lechuga crespa y morada, cosechadas recientemente.',
+    seller: 'Huerto Los Andes',
     isActive: true,
   },
   {
@@ -19,6 +21,7 @@ const mockPosts = [
     title: 'Zanahorias frescas',
     price: 2000,
     description: 'Zanahorias para venta al por mayor y retail.',
+    seller: 'Campo Verde',
     isActive: false,
   },
   {
@@ -26,6 +29,23 @@ const mockPosts = [
     title: 'Manzanas Fuji',
     price: 2500,
     description: 'Manzanas de excelente calidad, perfectas para consumo fresco.',
+    seller: 'Asociación de Agricultores',
+    isActive: true,
+  },
+  {
+    id: 5,
+    title: 'Papas para siembra',
+    price: 15000,
+    description: 'Papas de primera calidad certificadas para siembra.',
+    seller: 'Agroindustria Central',
+    isActive: true,
+  },
+  {
+    id: 6,
+    title: 'Fresas frescas',
+    price: 4500,
+    description: 'Fresas seleccionadas, recién cosechadas.',
+    seller: 'Huerto del Sur',
     isActive: true,
   },
 ];
@@ -37,6 +57,10 @@ const api = {
     await new Promise((resolve) => setTimeout(resolve, 300));
 
     if (url === '/posts/mine') {
+      return { data: mockPosts.slice(0, 4) };
+    }
+
+    if (url === '/posts') {
       return { data: mockPosts };
     }
 
