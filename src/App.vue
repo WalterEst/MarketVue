@@ -13,7 +13,7 @@ const currentYear = computed(() => new Date().getFullYear())
       <RouterView />
     </main>
     <footer>
-      <p>© {{ currentYear }} Municipalidad de Chillán. Turismo y cultura para todos.</p>
+      <p>© {{ currentYear }} AgroGestor. Gestión agrícola inteligente.</p>
     </footer>
   </div>
 </template>
