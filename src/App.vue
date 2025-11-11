@@ -1,41 +1,51 @@
+<<<<<<< HEAD
+<template>
+  <div class="app-shell">
+    <Navbar />
+    <main class="app-main">
+      <router-view />
+    </main>
+=======
 <script setup>
 import { computed } from 'vue'
 import { RouterView } from 'vue-router'
-import AppNavbar from './components/AppNavbar.vue'
+import Navbar from './components/Navbar.vue'
 
 const currentYear = computed(() => new Date().getFullYear())
 </script>
 
 <template>
-  <div class="layout">
-    <AppNavbar />
-    <main>
+  <div class="app-shell">
+  <Navbar />
+    <main class="app-main">
       <RouterView />
     </main>
     <footer>
-      <p>© {{ currentYear }} Municipalidad de Chillán. Turismo y cultura para todos.</p>
+      <p>© {{ currentYear }} AgroGestor. Gestión agrícola inteligente.</p>
     </footer>
+>>>>>>> 2ca9f9bca785590591df9fa0ca7e0c99f23bf9f5
   </div>
 </template>
 
+<script setup></script>
+
 <style scoped>
-.layout {
+.app-shell {
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: auto 1fr;
 }
 
-main {
-  flex: 1;
-  padding: 3rem min(6vw, 4rem);
-  background: linear-gradient(180deg, rgba(244, 211, 94, 0.15), rgba(11, 83, 148, 0.05));
+.app-main {
+  padding: 2.5rem 1.5rem 3.5rem;
+  width: min(1080px, 100%);
+  margin: 0 auto;
+  display: block;
 }
 
-footer {
-  background: #10375c;
-  color: #fff;
-  text-align: center;
-  padding: 1.5rem;
-  font-size: 0.9rem;
+@media (max-width: 640px) {
+  .app-main {
+    padding: 1.75rem 1rem 2.5rem;
+  }
 }
 </style>
