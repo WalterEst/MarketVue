@@ -56,7 +56,6 @@ section {
   margin-bottom: 3rem;
 }
 
-/* Layout base (copiado de coso-main, ligero) */
 .app-shell {
   min-height: 100vh;
   display: grid;
@@ -183,3 +182,12 @@ section {
   color: #9b1b30;
 }
 
+.muted {
+  color: var(--muted);
+}
+
+.alert {
+  padding: 1rem 1.25rem;
+  border-radius: 1rem;
+  font-weight: 600;
+}

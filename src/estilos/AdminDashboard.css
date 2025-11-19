@@ -1,0 +1,253 @@
+.admin {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+.admin__hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.admin__hero h1 {
+  font-size: 2.4rem;
+  margin: 0.4rem 0;
+}
+
+.hero__actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.admin__stats .stat {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.stat__label {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.stat__value {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.stat__hint {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.admin__panel,
+.admin__editor,
+.admin__requests,
+.admin__publicaciones,
+.admin__notas {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.panel__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+}
+
+.panel__header h2 {
+  margin: 0 0 0.25rem;
+}
+
+.panel__header .muted {
+  max-width: 640px;
+}
+
+.panel__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.filters {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.filters--compact {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.field span {
+  font-weight: 600;
+}
+
+.field input,
+.field select,
+.field textarea {
+  border-radius: 0.8rem;
+  border: 1px solid rgba(11, 63, 57, 0.18);
+  padding: 0.75rem 0.9rem;
+  font-size: 1rem;
+  background: #fff;
+  color: var(--text);
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: 2px solid rgba(11, 63, 57, 0.2);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.list__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.05rem;
+  border: 1px solid rgba(11, 63, 57, 0.08);
+  border-radius: 1rem;
+}
+
+.list__title {
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.list__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.list__buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.admin__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.25rem;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.form__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.form__actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.requests {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.request {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(11, 63, 57, 0.08);
+}
+
+.request__title {
+  font-weight: 700;
+  margin-bottom: 0.2rem;
+}
+
+.request__actions {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.admin__notas .notas {
+  width: 100%;
+  border-radius: 1rem;
+  padding: 1rem;
+  border: 1px solid rgba(11, 63, 57, 0.14);
+  resize: vertical;
+  min-height: 180px;
+  font-size: 1rem;
+}
+
+.badge {
+  background: rgba(11, 63, 57, 0.08);
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+.alert--info {
+  background: rgba(11, 63, 57, 0.1);
+  border: 1px solid rgba(11, 63, 57, 0.2);
+  color: var(--primary);
+  padding: 1rem 1.25rem;
+  border-radius: 1rem;
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .admin__hero {
+    flex-direction: column;
+  }
+
+  .panel__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .form__actions,
+  .hero__actions,
+  .panel__actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 600px) {
+  .list__item,
+  .request {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .list__meta,
+  .request__actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

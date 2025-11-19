@@ -9,6 +9,7 @@
     </div>
     <nav class="navbar__links">
       <RouterLink to="/login" class="navbar__link">Ingresar</RouterLink>
+      <RouterLink to="/admin" class="navbar__link">Administrador</RouterLink>
       <a class="navbar__cta" href="#">Crear cuenta</a>
     </nav>
   </header>

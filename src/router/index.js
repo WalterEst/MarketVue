@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '../componentes/Login.vue'
+import AdminDashboard from '../componentes/AdminDashboard.vue'
 
 const routes = [
   {
@@ -10,8 +11,14 @@ const routes = [
     path: '/login',
     name: 'login',
     component: LoginView,
-    meta: { title: 'Ingresa a MarkeVue' }
-  }
+    meta: { title: 'Ingresa a MarketVue' }
+  },
+  {
+      path: '/admin',
+      name: 'admin',
+      component: AdminDashboard,
+      meta: { title: 'Panel administrador | MarketVUE' }
+    }
 ]
 
 const router = createRouter({
