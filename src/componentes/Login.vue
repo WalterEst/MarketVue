@@ -1,5 +1,6 @@
 <script setup>
 import { reactive, ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 
 const form = reactive({
   email: '',
@@ -9,6 +10,8 @@ const form = reactive({
 const loading = ref(false)
 const feedback = ref(null)
 const apiBase = import.meta.env.VITE_API_URL?.replace(/\/$/, '') || 'http://localhost:3000/api'
+const router = useRouter()
+const adminRoles = [1, 2]
 
 const emailValid = computed(() =>
   /^\S+@\S+\.\S+$/.test(form.email.trim())
@@ -36,10 +39,19 @@ const handleSubmit = async () => {
     }
 
     const nombre = payload?.usuario?.nombre || 'a MarkeVUE'
+    const roleId = Number(payload?.usuario?.rol_id)
+    const isAdmin = adminRoles.includes(roleId)
+    const estado = payload?.usuario?.estado_registro || 'pendiente'    
     localStorage.setItem('marketvue.session', JSON.stringify(payload))
     feedback.value = {
       type: 'success',
-      text: `¡Bienvenido ${nombre}! Estado de tu cuenta: ${payload?.usuario?.estado_registro || 'pendiente'}.`
+            text: isAdmin
+        ? `¡Bienvenido ${nombre}! Redirigiendo al panel administrador.`
+        : `¡Bienvenido ${nombre}! Estado de tu cuenta: ${estado}.`
+    }
+
+    if (isAdmin) {
+      await router.push({ name: 'admin' })
     }
   } catch (error) {
     feedback.value = {
