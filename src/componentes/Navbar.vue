@@ -7,20 +7,16 @@
         <p class="brand__subtitle">Mercado agrícola inteligente</p>
       </div>
     </div>
-
-    <nav class="navbar__links">
-      
-      <RouterLink to="/publicaciones" class="navbar__link">Productos</RouterLink>
-
-      <RouterLink to="/login" class="navbar__link">Ingresar</RouterLink>
-      <RouterLink to="/register" class="navbar__cta">Crear cuenta</RouterLink>
-
-      <RouterLink to="/panel/publicador/mis-productos" class="navbar__link" style="color: var(--pub-primary); font-weight: bold;">
-        Mi Panel
-      </RouterLink>
-
-      <RouterLink to="/admin" class="navbar__link">Admin</RouterLink>
     
+    <nav class="navbar__links">
+      <RouterLink to="/Publicaciones" class="navbar__link">Productos</RouterLink>
+      <RouterLink to="/login" class="navbar__link">Ingresar</RouterLink>
+      
+      <RouterLink to="/panel/publicador/mis-productos" class="navbar__link">Mi Panel</RouterLink>
+
+      <RouterLink to="/admin" class="navbar__link">Administrador</RouterLink>
+      
+      <RouterLink to="/register" class="navbar__cta">Crear cuenta</RouterLink>
     </nav>
   </header>
 </template>
