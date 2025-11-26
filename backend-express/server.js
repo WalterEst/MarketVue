@@ -188,6 +188,176 @@ app.get('/api/publicaciones', async (_req, res) => {
   }
 })
 
+// Endpoint para obtener detalle de una publicación específica con datos del vendedor
+app.get('/api/publicaciones/:id', async (req, res) => {
+  const { id } = req.params
+
+  if (dataSource.mode === 'mock') {
+    const producto = mockPublicaciones.find(p => p.id == id)
+    if (!producto) {
+      return res.status(404).json({ message: 'Producto no encontrado' })
+    }
+
+    return res.json({
+      publicacion: {
+        ...producto,
+        vendedor: {
+          nombre: mockUsers[0].nombre,
+          apellido: mockUsers[0].apellido,
+          email: mockUsers[0].email,
+          estado_registro: mockUsers[0].estado_registro
+        }
+      }
+    })
+  }
+
+  try {
+    // Primera consulta estricta: publicado y visible
+    const [rows] = await dataSource.pool.query(
+      `SELECT p.id,
+              p.titulo,
+              p.descripcion,
+              p.precio,
+              p.moneda,
+              COALESCE(c.nombre, 'Sin categoría') AS categoria,
+              TRIM(CONCAT(COALESCE(u.nombre, ''), ' ', COALESCE(u.apellido, ''))) AS autor,
+              DATE_FORMAT(p.creado_en, '%Y-%m-%d') AS fecha,
+              p.estado_publicacion,
+              (
+                SELECT img.ruta_imagen
+                FROM publicaciones_imagenes img
+                WHERE img.publicacion_id = p.id
+                ORDER BY img.es_portada DESC, img.orden ASC, img.id ASC
+                LIMIT 1
+              ) AS portada
+         FROM publicaciones p
+    LEFT JOIN usuarios u ON p.usuario_id = u.id
+    LEFT JOIN categorias c ON p.categoria_id = c.id
+        WHERE p.id = ? AND p.visible = 1 AND p.estado_publicacion = 'publicada'
+        LIMIT 1`,
+      [id]
+    )
+
+    if (rows.length > 0) {
+      const row = rows[0]
+      const publicacion = {
+        id: row.id,
+        titulo: row.titulo,
+        descripcion: row.descripcion,
+        precio: row.precio,
+        moneda: row.moneda,
+        categoria: row.categoria,
+        autor: row.autor,
+        fecha: row.fecha,
+        estado_publicacion: row.estado_publicacion,
+        portada: row.portada,
+        vendedor: null
+      }
+
+      // Intentamos cargar datos del vendedor si existen
+      try {
+        const [urows] = await dataSource.pool.query(
+          `SELECT id, nombre, apellido, email, estado_registro FROM usuarios WHERE id = (
+             SELECT usuario_id FROM publicaciones WHERE id = ? LIMIT 1
+           ) LIMIT 1`,
+          [id]
+        )
+        if (urows.length) {
+          publicacion.vendedor = {
+            id: urows[0].id,
+            nombre: urows[0].nombre,
+            apellido: urows[0].apellido,
+            email: urows[0].email,
+            estado_registro: urows[0].estado_registro
+          }
+        }
+      } catch (e) {
+        console.warn('No se pudo cargar info completa del vendedor:', e.message)
+      }
+
+      return res.json({ publicacion })
+    }
+
+    // Segunda consulta relajada: sin filtros de visible/estado
+    console.warn(`Producto ${id} no encontrado con filtros estrictos. Intentando consulta relajada...`)
+    const [rowsRelaxed] = await dataSource.pool.query(
+      `SELECT p.id,
+              p.titulo,
+              p.descripcion,
+              p.precio,
+              p.moneda,
+              COALESCE(c.nombre, 'Sin categoría') AS categoria,
+              TRIM(CONCAT(COALESCE(u.nombre, ''), ' ', COALESCE(u.apellido, ''))) AS autor,
+              DATE_FORMAT(p.creado_en, '%Y-%m-%d') AS fecha,
+              p.estado_publicacion,
+              (
+                SELECT img.ruta_imagen
+                FROM publicaciones_imagenes img
+                WHERE img.publicacion_id = p.id
+                ORDER BY img.es_portada DESC, img.orden ASC, img.id ASC
+                LIMIT 1
+              ) AS portada,
+              u.id AS vendedor_id,
+              u.nombre AS vendedor_nombre,
+              u.apellido AS vendedor_apellido,
+              u.email AS vendedor_email,
+              u.estado_registro AS vendedor_estado
+         FROM publicaciones p
+    LEFT JOIN usuarios u ON p.usuario_id = u.id
+    LEFT JOIN categorias c ON p.categoria_id = c.id
+        WHERE p.id = ?
+        LIMIT 1`,
+      [id]
+    )
+
+    if (rowsRelaxed.length > 0) {
+      const row = rowsRelaxed[0]
+      const publicacion = {
+        id: row.id,
+        titulo: row.titulo,
+        descripcion: row.descripcion,
+        precio: row.precio,
+        moneda: row.moneda,
+        categoria: row.categoria,
+        autor: row.autor,
+        fecha: row.fecha,
+        estado_publicacion: row.estado_publicacion,
+        portada: row.portada,
+        vendedor: {
+          id: row.vendedor_id,
+          nombre: row.vendedor_nombre,
+          apellido: row.vendedor_apellido,
+          email: row.vendedor_email,
+          estado_registro: row.vendedor_estado
+        }
+      }
+
+      return res.json({ publicacion, advertencia: 'encontrado_no_publicado' })
+    }
+
+    // Fallback a mock data si no existe en BD
+    const producto = mockPublicaciones.find(p => p.id == id)
+    if (producto) {
+      return res.json({
+        publicacion: {
+          ...producto,
+          vendedor: {
+            nombre: mockUsers[0].nombre,
+            apellido: mockUsers[0].apellido,
+            email: mockUsers[0].email,
+            estado_registro: mockUsers[0].estado_registro
+          }
+        }
+      })
+    }
+
+    return res.status(404).json({ message: 'Producto no encontrado' })
+  } catch (error) {
+    console.error('Error obteniendo detalle de publicación:', error.message)
+    return res.status(500).json({ message: 'Error al cargar los detalles del producto' })
+  }
+})
+
 app.post(
   '/api/auth/login',
   [

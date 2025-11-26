@@ -33,10 +33,17 @@ const obtenerProducto = async () => {
     const response = await fetch(`http://localhost:3000/api/publicaciones/${productId.value}`)
     
     if (!response.ok) {
+      // Si no existe el detalle en el endpoint, intentamos un fallback
       if (response.status === 404) {
+        console.warn(`Detalle no encontrado en /api/publicaciones/${productId.value}, intentando buscar en la lista...`)
+        const found = await buscarEnLista(productId.value)
+        if (found) {
+          producto.value = found
+          return
+        }
         throw new Error('Producto no encontrado')
       }
-      throw new Error('Error al cargar el producto')
+      throw new Error(`Error al cargar el producto (${response.status})`)
     }
     
     const data = await response.json()
@@ -46,6 +53,35 @@ const obtenerProducto = async () => {
     console.error('Error:', err)
   } finally {
     cargando.value = false
+  }
+}
+
+// Fallback: obtiene la lista completa y busca el producto por id
+const buscarEnLista = async (id) => {
+  try {
+    const resp = await fetch('http://localhost:3000/api/publicaciones')
+    if (!resp.ok) {
+      console.warn('No se pudo obtener la lista de publicaciones para fallback')
+      return null
+    }
+    const d = await resp.json()
+    const lista = d.publicaciones || []
+    const match = lista.find(p => String(p.id) === String(id))
+    if (!match) return null
+
+    // Si viene desde la lista, probablemente no tenga datos de vendedor; añadimos un vendedor mínimo
+    return {
+      ...match,
+      vendedor: match.vendedor || {
+        nombre: match.autor ? String(match.autor).split(' ')[0] : 'Vendedor',
+        apellido: match.autor ? String(match.autor).split(' ').slice(1).join(' ') : '',
+        email: null,
+        estado_registro: 'desconocido'
+      }
+    }
+  } catch (err) {
+    console.error('Error buscando en lista:', err)
+    return null
   }
 }
 
