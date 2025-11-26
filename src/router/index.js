@@ -59,7 +59,8 @@ const routes = [
     meta: { authRequired: true, allowedRoles: ['publisher'] },
     children: [
       {
-        path: 'mis-publicaciones', // URL: /panel/publicador/mis-publicaciones
+        path: 'mis-productos', // URL: /panel/publicador/mis-productos
+        alias: 'mis-publicaciones', // mantenemos compatibilidad con la ruta anterior
         name: 'publisher-products', // Mantenemos el name interno por si acaso
         component: MyProductsView,
         meta: { title: 'Mis Publicaciones' }

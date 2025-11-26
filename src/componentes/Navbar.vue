@@ -9,7 +9,7 @@
     </div>
     
     <nav class="navbar__links">
-      <RouterLink to="/Publicaciones" class="navbar__link">Productos</RouterLink>
+      <RouterLink to="/publicaciones" class="navbar__link">Productos</RouterLink>
       <RouterLink to="/login" class="navbar__link">Ingresar</RouterLink>
       
       <RouterLink to="/panel/publicador/mis-productos" class="navbar__link">Mi Panel</RouterLink>

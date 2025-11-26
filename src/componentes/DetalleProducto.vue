@@ -75,7 +75,7 @@ onMounted(() => {
     <!-- Mensaje de error -->
     <div v-if="error && !cargando" class="error-mensaje">
       <p>{{ error }}</p>
-      <RouterLink to="/productos" class="btn-volver">
+      <RouterLink to="/publicaciones" class="btn-volver">
         Ir al catálogo
       </RouterLink>
     </div>

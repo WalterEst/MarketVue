@@ -119,7 +119,7 @@ const limpiarFiltros = () => {
       <RouterLink
         v-for="producto in productosFiltrados"
         :key="producto.id"
-        :to="`/productos/${producto.id}`"
+        :to="`/publicaciones/${producto.id}`"
         class="producto-card"
       >
         <div class="producto-imagen">
