@@ -73,6 +73,32 @@ const dataSource = {
   pool: null
 }
 
+const roleCapabilities = {
+  1: [
+    'Acceso total al panel administrativo',
+    'Aprobar o rechazar usuarios y publicaciones',
+    'Modificar roles y permisos de otros administradores',
+    'Revisar historial de acciones administrativas'
+  ],
+  2: [
+    'Gestionar usuarios registrados',
+    'Revisar y aprobar publicaciones pendientes',
+    'Editar información básica de la plataforma'
+  ],
+  default: ['Navegar y publicar productos propios']
+}
+
+const buildUpdateQuery = (fields = {}) => {
+  const entries = Object.entries(fields).filter(([, value]) => value !== undefined)
+
+  if (!entries.length) return null
+
+  const setClause = entries.map(([key]) => `${key} = ?`).join(', ')
+  const values = entries.map(([, value]) => value)
+
+  return { setClause, values }
+}
+
 // Formatea un usuario para la respuesta
 const formatUser = (user) => ({
   id: user.id,
@@ -469,7 +495,114 @@ app.get('/api/admin/dashboard', async (_req, res) => {
     return res.json({ usuarios, solicitudes, publicaciones })
   } catch (error) {
     console.error('Error obteniendo datos de dashboard:', error.message)
-    return res.status(500).json({ message: 'Error al cargar datos del panel' })
+  return res.status(500).json({ message: 'Error al cargar datos del panel' })
+  }
+})
+
+app.get('/api/admin/usuarios/:id', async (req, res) => {
+  const { id } = req.params
+
+  if (dataSource.mode === 'mock') {
+    const usuario = mockUsers.find((user) => user.id === Number(id))
+
+    if (!usuario) {
+      return res.status(404).json({ message: 'Usuario no encontrado' })
+    }
+
+    const publicacionesUsuario = mockPublicaciones.filter((item) => item.autor === usuario.nombre)
+
+    return res.json({
+      usuario: {
+        id: usuario.id,
+        nombre: usuario.nombre,
+        apellido: usuario.apellido,
+        email: usuario.email,
+        estado_registro: usuario.estado_registro,
+        rol_id: usuario.rol_id,
+        rol: 'superusuario',
+        ultimo_login: null,
+        creado_en: null,
+        actualizado_en: null
+      },
+      permisos: roleCapabilities[usuario.rol_id] || roleCapabilities.default,
+      publicaciones: publicacionesUsuario,
+      resumenPublicaciones: {
+        total: publicacionesUsuario.length,
+        publicadas: publicacionesUsuario.length,
+        pendientes: 0,
+        rechazadas: 0
+      },
+      rolesDisponibles: [
+        { id: 1, nombre: 'superusuario' },
+        { id: 2, nombre: 'administrador' },
+        { id: 3, nombre: 'usuario' }
+      ]
+    })
+  }
+
+  try {
+    const [usuarios] = await dataSource.pool.query(
+      `SELECT u.id,
+              u.nombre,
+              u.apellido,
+              u.email,
+              u.estado_registro,
+              u.rol_id,
+              COALESCE(r.nombre, '') AS rol,
+              DATE_FORMAT(u.ultimo_login, '%Y-%m-%d %H:%i:%s') AS ultimo_login,
+              DATE_FORMAT(u.creado_en, '%Y-%m-%d %H:%i:%s') AS creado_en,
+              DATE_FORMAT(u.actualizado_en, '%Y-%m-%d %H:%i:%s') AS actualizado_en
+         FROM usuarios u
+    LEFT JOIN roles r ON u.rol_id = r.id
+        WHERE u.id = ?
+        LIMIT 1`,
+      [id]
+    )
+
+    if (!usuarios.length) {
+      return res.status(404).json({ message: 'Usuario no encontrado' })
+    }
+
+    const usuario = usuarios[0]
+
+    const [publicaciones] = await dataSource.pool.query(
+      `SELECT p.id,
+              p.titulo,
+              p.estado_publicacion,
+              DATE_FORMAT(p.creado_en, '%Y-%m-%d') AS fecha,
+              p.visible
+         FROM publicaciones p
+        WHERE p.usuario_id = ?
+     ORDER BY p.creado_en DESC
+        LIMIT 100`,
+      [id]
+    )
+
+    const resumenPublicaciones = publicaciones.reduce(
+      (acc, pub) => {
+        acc.total += 1
+        if (pub.estado_publicacion === 'publicada') acc.publicadas += 1
+        if (pub.estado_publicacion === 'pendiente_revision') acc.pendientes += 1
+        if (pub.estado_publicacion === 'rechazada') acc.rechazadas += 1
+        return acc
+      },
+      { total: 0, publicadas: 0, pendientes: 0, rechazadas: 0 }
+    )
+
+    const [rolesDisponibles] = await dataSource.pool.query(
+      'SELECT id, nombre FROM roles ORDER BY id'
+    )
+
+    return res.json({
+      usuario,
+      permisos: roleCapabilities[usuario.rol_id] || roleCapabilities.default,
+      publicaciones,
+      resumenPublicaciones,
+      rolesDisponibles
+    })
+  } catch (error) {
+    console.error('Error obteniendo detalle de usuario:', error.message)
+    return res.status(500).json({ message: 'No fue posible cargar el usuario' })
   }
 })
 
@@ -535,7 +668,11 @@ app.put(
         [id]
       )
 
-      return res.json({ message: 'Usuario actualizado', usuario: rows[0] })
+      return res.json({
+        message: 'Usuario actualizado',
+        usuario: rows[0],
+        permisos: roleCapabilities[rows[0].rol_id] || roleCapabilities.default
+      })
     } catch (error) {
       console.error('Error actualizando usuario:', error.message)
       return res.status(500).json({ message: 'No fue posible actualizar el usuario' })

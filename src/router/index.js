@@ -7,6 +7,7 @@ import RegistroView from '../componentes/Registro.vue'
 import AdminDashboard from '../componentes/AdminDashboard.vue'
 import ProductosPublicos from '../componentes/ProductosPublicos.vue' 
 import DetalleProducto from '../componentes/DetalleProducto.vue'
+import AdminUserDetailView from '../views/AdminUserDetailView.vue'
 
 // 2. IMPORTACIONES DEL DASHBOARD PUBLICADOR
 import DashboardLayout from '../layouts/DashboardLayout.vue'
@@ -56,7 +57,18 @@ const routes = [
       allowedRoles: [1, 2, 'admin', 'administrador', 'moderador', 'moderator']
     }
   },
-
+  {
+    path: '/admin/usuarios/:id',
+    name: 'admin-user-detail',
+    component: AdminUserDetailView,
+    props: true,
+    meta: {
+      title: 'Detalle de usuario',
+      authRequired: true,
+      allowedRoles: [1, 2, 'admin', 'administrador', 'moderador', 'moderator']
+    }
+  },
+  
   // --- RUTAS PROTEGIDAS DEL PUBLICADOR ---
   {
     path: '/panel/publicador',

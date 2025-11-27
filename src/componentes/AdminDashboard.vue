@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 const usuarios = ref([])
 const solicitudesPublicacion = ref([])
@@ -35,6 +36,8 @@ const usuarioEditado = reactive({
   estado: '',
   notas: ''
 })
+
+const router = useRouter()
 
 const totales = computed(() => ({
   usuarios: usuarios.value.length,
@@ -83,6 +86,15 @@ const seleccionarUsuario = (usuario) => {
   usuarioEditado.estado = usuario.estado || ''
   usuarioEditado.notas = ''
   registrarAccion('Usuario cargado para edición. Realiza los cambios y guarda.')
+}
+
+const irAlDetalleUsuario = (usuario) => {
+  if (!usuario?.id) {
+    registrarAccion('No pudimos abrir el detalle del usuario seleccionado.')
+    return
+  }
+
+  router.push({ name: 'admin-user-detail', params: { id: usuario.id } })
 }
 
 const enviarCambiosUsuario = async () => {
@@ -221,7 +233,8 @@ onMounted(sincronizarDashboard)
               {{ usuario.estado || 'sin estado' }}
             </span>
             <div class="list__buttons">
-              <button class="btn btn--ghost" type="button" @click="seleccionarUsuario(usuario)">Editar</button>
+              <button class="btn btn--ghost" type="button" @click="irAlDetalleUsuario(usuario)">Editar</button>
+              <button class="btn btn--ghost" type="button" @click="seleccionarUsuario(usuario)">Edición rápida</button>
               <button class="btn btn--ghost" type="button" @click="registrarAccion('Usuario marcado para bloqueo o eliminación.')">Bloquear/Eliminar</button>
             </div>
           </div>
