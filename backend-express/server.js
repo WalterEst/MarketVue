@@ -752,6 +752,80 @@ app.put(
   }
 )
 
+// Endpoint para registrar nuevos usuarios
+app.post(
+  '/api/auth/register',
+  [
+    // Validaciones básicas
+    body('nombre').isLength({ min: 2 }),
+    body('apellido').isLength({ min: 2 }),
+    body('email').isEmail(),
+    body('passwrd').isLength({ min: 6 })
+  ],
+  async (req, res) => {
+    const errors = validationResult(req)
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ message: 'Datos inválidos', errors: errors.array() })
+    }
+
+    const { nombre, apellido, email, passwrd } = req.body
+
+    try {
+      // Verifica si el email ya existe
+      const existing = await findUserByEmail(email)
+      if (existing) {
+        return res.status(409).json({ message: 'El email ya está registrado' })
+      }
+
+      // Modo mock (sin base de datos)
+      if (dataSource.mode === 'mock') {
+        const nextId = mockUsers.reduce((max, u) => Math.max(max, u.id), 0) + 1
+        const newUser = {
+          id: nextId,
+          nombre,
+          apellido,
+          email,
+          passwrd,
+          estado_registro: 'pendiente',
+          rol_id: 3
+        }
+
+        mockUsers.push(newUser)
+
+        return res.status(201).json({
+          message: 'Registro creado (mock)',
+          usuario: formatUser(newUser),
+          origen: 'mock'
+        })
+      }
+
+      // Inserta usuario en la base de datos
+      const [result] = await dataSource.pool.query(
+        `INSERT INTO usuarios (nombre, apellido, email, passwrd, estado_registro, rol_id, creado_en)
+           VALUES (?, ?, ?, ?, 'pendiente', ?, NOW())`,
+        [nombre, apellido, email, passwrd, 3]
+      )
+
+      const insertedId = result.insertId
+
+      const [rows] = await dataSource.pool.query(
+        `SELECT id, nombre, apellido, email, estado_registro, rol_id
+           FROM usuarios WHERE id = ? LIMIT 1`,
+        [insertedId]
+      )
+
+      return res.status(201).json({
+        message: 'Usuario creado',
+        usuario: formatUser(rows[0]),
+        origen: 'database'
+      })
+    } catch (error) {
+      console.error('Error en register:', error)
+      return res.status(500).json({ message: 'Error interno del servidor' })
+    }
+  }
+)
+
 // Inicializa el pool y levanta la API
 bootstrapPool().finally(() => {
   app.listen(PORT, () => {
