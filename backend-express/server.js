@@ -100,20 +100,55 @@ const dataSource = {
   pool: null
 }
 
+const ROLE_IDS = {
+  SUPER_ADMIN: 1,
+  ADMIN: 2,
+  USER: 3
+}
+
 const roleCapabilities = {
-  1: [
+  [ROLE_IDS.SUPER_ADMIN]: [
     'Acceso total al panel administrativo',
     'Aprobar o rechazar usuarios y publicaciones',
     'Modificar roles y permisos de otros administradores',
     'Revisar historial de acciones administrativas'
   ],
-  2: [
-    'Gestionar usuarios registrados',
+  [ROLE_IDS.ADMIN]: [
+    'Acceso administrativo sin edición de datos de usuarios',
+    'Aprobar o rechazar usuarios registrados',
     'Revisar y aprobar publicaciones pendientes',
-    'Editar información básica de la plataforma'
+    'Consultar historial de acciones administrativas'
   ],
   default: ['Navegar y publicar productos propios']
 }
+
+const allowedRoles = [ROLE_IDS.SUPER_ADMIN, ROLE_IDS.ADMIN, ROLE_IDS.USER]
+
+const normalizeRoleName = (roleId, fallbackName = '') => {
+  switch (Number(roleId)) {
+    case ROLE_IDS.SUPER_ADMIN:
+      return 'super administrador'
+    case ROLE_IDS.ADMIN:
+      return 'administrador'
+    case ROLE_IDS.USER:
+      return 'usuario'
+    default:
+      return fallbackName
+  }
+}
+
+const getActorRoleId = (req) => {
+  const rawRole =
+    req.headers['x-role-id'] ||
+    req.headers['x-user-role'] ||
+    req.headers['x-admin-role'] ||
+    req.headers['x-actor-role']
+
+  const roleId = Number(rawRole)
+
+  return Number.isInteger(roleId) && allowedRoles.includes(roleId) ? roleId : null
+}
+
 
 const buildUpdateQuery = (fields = {}) => {
   const entries = Object.entries(fields).filter(([, value]) => value !== undefined)
@@ -638,9 +673,9 @@ app.get('/api/admin/usuarios/:id', async (req, res) => {
         rechazadas: 0
       },
       rolesDisponibles: [
-        { id: 1, nombre: 'superusuario' },
-        { id: 2, nombre: 'administrador' },
-        { id: 3, nombre: 'usuario' }
+        { id: ROLE_IDS.SUPER_ADMIN, nombre: normalizeRoleName(ROLE_IDS.SUPER_ADMIN) },
+        { id: ROLE_IDS.ADMIN, nombre: normalizeRoleName(ROLE_IDS.ADMIN) },
+        { id: ROLE_IDS.USER, nombre: normalizeRoleName(ROLE_IDS.USER) }
       ]
     })
   }
@@ -695,15 +730,22 @@ app.get('/api/admin/usuarios/:id', async (req, res) => {
     )
 
     const [rolesDisponibles] = await dataSource.pool.query(
-      'SELECT id, nombre FROM roles ORDER BY id'
+      'SELECT id, nombre FROM roles WHERE id IN (?, ?, ?) ORDER BY id',
+      [ROLE_IDS.SUPER_ADMIN, ROLE_IDS.ADMIN, ROLE_IDS.USER]
     )
+
+    const normalizedRoles = rolesDisponibles.map((rol) => ({
+      id: rol.id,
+      nombre: normalizeRoleName(rol.id, rol.nombre)
+    }))
+
 
     return res.json({
       usuario,
       permisos: roleCapabilities[usuario.rol_id] || roleCapabilities.default,
       publicaciones,
       resumenPublicaciones,
-      rolesDisponibles
+      rolesDisponibles: normalizedRoles
     })
   } catch (error) {
     console.error('Error obteniendo detalle de usuario:', error.message)
@@ -735,8 +777,33 @@ app.put(
     const { id } = req.params
     const { nombre, apellido, email, estado_registro, rol_id } = req.body
 
-    // Construye query dinámicamente
-    const update = buildUpdateQuery({ nombre, apellido, email, estado_registro, rol_id })
+    const actorRoleId = getActorRoleId(req)
+
+    if (!actorRoleId) {
+      return res.status(403).json({ message: 'Debes indicar tu rol para modificar usuarios' })
+    }
+
+    if (![ROLE_IDS.SUPER_ADMIN, ROLE_IDS.ADMIN].includes(actorRoleId)) {
+      return res.status(403).json({ message: 'No tienes permisos para modificar usuarios' })
+    }
+
+    const adminIntentoEdicion =
+      actorRoleId === ROLE_IDS.ADMIN &&
+      [nombre, apellido, email, rol_id].some((campo) => campo !== undefined)
+
+    if (adminIntentoEdicion) {
+      return res
+        .status(403)
+        .json({ message: 'Solo el super administrador puede editar datos o roles de usuarios' })
+    }
+    
+    const update = buildUpdateQuery({
+      nombre: actorRoleId === ROLE_IDS.SUPER_ADMIN ? nombre : undefined,
+      apellido: actorRoleId === ROLE_IDS.SUPER_ADMIN ? apellido : undefined,
+      email: actorRoleId === ROLE_IDS.SUPER_ADMIN ? email : undefined,
+      estado_registro,
+      rol_id: actorRoleId === ROLE_IDS.SUPER_ADMIN ? rol_id : undefined
+    })
 
     if (!update) {
       return res.status(400).json({ message: 'No se enviaron campos para actualizar' })

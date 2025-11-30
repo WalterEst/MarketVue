@@ -96,7 +96,7 @@ const handleSubmit = async () => {
         </article>
         <article class="status">
           <p class="status__label">Tipos de usuario</p>
-          <p class="status__value">superadministrador · administrador · vendedor</p>
+          <p class="status__value">super administrador · administrador · usuario</p>
           <p class="status__hint">
             Los administradores pueden revisar y aprobar nuevas cuentas y publicaciones.
           </p>

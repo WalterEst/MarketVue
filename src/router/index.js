@@ -55,7 +55,7 @@ const routes = [
     meta: {
       title: 'Panel Administrador',
       authRequired: true,
-      allowedRoles: [1, 2, 'admin', 'administrador', 'moderador', 'moderator']
+      allowedRoles: [1, 2, 'super administrador', 'superadministrador', 'administrador']
     }
   },
     {
@@ -66,7 +66,7 @@ const routes = [
     meta: {
       title: 'Detalle de publicación',
       authRequired: true,
-      allowedRoles: [1, 2, 'admin', 'administrador', 'moderador', 'moderator']
+      allowedRoles: [1, 2, 'super administrador', 'superadministrador', 'administrador']
     }
   },
   {
@@ -77,7 +77,7 @@ const routes = [
     meta: {
       title: 'Detalle de usuario',
       authRequired: true,
-      allowedRoles: [1, 2, 'admin', 'administrador', 'moderador', 'moderator']
+      allowedRoles: [1, 2, 'super administrador', 'superadministrador', 'administrador']
     }
   },
   
@@ -85,7 +85,7 @@ const routes = [
   {
     path: '/panel/publicador',
     component: DashboardLayout,
-    meta: { authRequired: true, allowedRoles: ['publisher', 'publicador', 'vendedor', 3] },
+    meta: { authRequired: true, allowedRoles: [3, 'usuario'] },
     children: [
       {
         path: 'mis-productos', 
