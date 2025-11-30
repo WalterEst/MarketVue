@@ -1003,7 +1003,8 @@ app.post(
 
 // 1. GET: Mis Publicaciones 
 app.get('/api/publisher/products', async (req, res) => {
-    const currentUserId = 1; 
+  const currentUserId = Number(req.query.userId || req.headers['x-user-id'] || null);
+  if (!currentUserId) return res.status(401).json({ message: 'Usuario no autenticado' });
     
     if (dataSource.mode === 'mock') {
         return res.json(mockPublicaciones.map(formatPublicationRow));
@@ -1093,11 +1094,17 @@ app.post('/api/publisher/products', upload.single('portada'), async (req, res) =
     }
 
 try {
+        const userId = Number(req.body.userId || req.query.userId || req.headers['x-user-id'] || null);
+
+        if (!userId) {
+          return res.status(401).json({ message: 'Usuario no autenticado' });
+        }
+
         const [result] = await dataSource.pool.query(
             `INSERT INTO publicaciones 
             (titulo, precio, stock, descripcion, usuario_id, estado_publicacion, visible, creado_en)
             VALUES (?, ?, ?, ?, ?, 'pendiente_revision', 1, NOW())`, 
-            [name, price, stock, description, 1]
+          [name, price, stock, description, userId]
         );
         
         const newProductId = result.insertId;
@@ -1158,7 +1165,9 @@ app.delete('/api/publisher/products/:id', async (req, res) => {
 // 6. GET: Obtener mi perfil
 app.get('/api/publisher/profile', async (req, res) => {
 
-    const userId = req.query.userId || 1;
+    const userId = Number(req.query.userId || req.headers['x-user-id'] || null);
+
+    if (!userId) return res.status(401).json({ message: 'Usuario no autenticado' });
 
     console.log(`Buscando perfil en BD para ID: ${userId}`);
 
@@ -1191,8 +1200,10 @@ app.get('/api/publisher/profile', async (req, res) => {
 // 7. PUT: Actualizar perfil
 app.put('/api/publisher/profile', async (req, res) => {
     
-    const userId = req.query.userId || 1;
+    const userId = Number(req.query.userId || req.headers['x-user-id'] || null);
     const { nombre, apellido, email, password, currentPassword } = req.body;
+
+    if (!userId) return res.status(401).json({ message: 'Usuario no autenticado' });
 
     if (dataSource.mode === 'mock') {
      
@@ -1211,7 +1222,7 @@ app.put('/api/publisher/profile', async (req, res) => {
         }
 
         query += ' WHERE id=?';
-        params.push(currentUserId);
+        params.push(userId);
 
         await dataSource.pool.query(query, params);
 
@@ -1232,8 +1243,9 @@ let mockReportes = [
 
 // 8. GET: Mis Reportes/Tickets
 app.get('/api/publisher/reports', async (req, res) => {
-    const userId = 1; // Hardcodeado
-    if (dataSource.mode === 'mock') return res.json(mockReportes);
+  const userId = Number(req.query.userId || req.headers['x-user-id'] || null);
+  if (!userId && dataSource.mode !== 'mock') return res.status(401).json({ message: 'Usuario no autenticado' });
+  if (dataSource.mode === 'mock') return res.json(mockReportes);
 
     try {
         const [rows] = await dataSource.pool.query(
@@ -1258,9 +1270,12 @@ app.post('/api/publisher/contact', async (req, res) => {
     }
 
     try {
+        const userId = Number(req.body.userId || req.query.userId || req.headers['x-user-id'] || null);
+        if (!userId) return res.status(401).json({ message: 'Usuario no autenticado' });
+
         await dataSource.pool.query(
-            `INSERT INTO soporte_tickets (usuario_id, asunto, mensaje, estado, creado_en) VALUES (?, ?, ?, 'pendiente', NOW())`,
-            [1, asunto, mensaje]
+          `INSERT INTO soporte_tickets (usuario_id, asunto, mensaje, estado, creado_en) VALUES (?, ?, ?, 'pendiente', NOW())`,
+          [userId, asunto, mensaje]
         );
         return res.status(201).json({ message: 'Mensaje enviado correctamente' });
     } catch (e) {
