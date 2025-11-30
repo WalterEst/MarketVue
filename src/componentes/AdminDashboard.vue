@@ -344,14 +344,7 @@ onMounted(sincronizarDashboard)
             Los datos se cargan desde el backend cuando está disponible; si no hay registros verás los estados vacíos.
           </p>
         </div>
-      <div class="hero__actions">
-        <button class="btn btn--primary" type="button" @click="registrarAccion('Acción rápida programada para ejecutarse con el backend.')">
-          Crear rol o permiso
-        </button>
-        <button class="btn btn--ghost" type="button" @click="registrarAccion('Sincronización pendiente de conexión.')">
-          Sincronizar cambios
-        </button>
-      </div>
+
     </header>
 
     <div class="grid-responsive admin__stats">
@@ -382,7 +375,6 @@ onMounted(sincronizarDashboard)
           <button class="btn btn--ghost" type="button" @click="sincronizarDashboard" :disabled="cargando">
             {{ cargando ? 'Sincronizando...' : 'Refrescar datos' }}
           </button>
-          <button class="btn btn--primary" type="button" @click="registrarAccion('Exportación pendiente de backend.')">Exportar</button>
         </div>
       </header>
 
