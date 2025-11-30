@@ -512,7 +512,8 @@ app.get('/api/admin/dashboard', async (_req, res) => {
         ultimo_login: null
       })),
       solicitudes: [],
-      publicaciones: []
+      publicaciones: [],
+      reportes: mockReportes
     })
   }
 
@@ -560,8 +561,25 @@ app.get('/api/admin/dashboard', async (_req, res) => {
      ORDER BY p.creado_en DESC
         LIMIT 100`
     )
+    // Obtiene los tickets de soporte/reporte para que sean visibles en el panel admin
+    const [reportes] = await dataSource.pool.query(
+      `SELECT s.id,
+              s.asunto,
+              s.mensaje,
+              s.estado,
+              DATE_FORMAT(s.creado_en, '%Y-%m-%d') AS fecha,
+              s.respuesta,
+              u.id AS usuario_id,
+              u.nombre AS usuario_nombre,
+              u.apellido AS usuario_apellido,
+              u.email AS usuario_email
+         FROM soporte_tickets s
+    LEFT JOIN usuarios u ON s.usuario_id = u.id
+     ORDER BY s.creado_en DESC
+        LIMIT 100`
+    )
 
-    return res.json({ usuarios, solicitudes, publicaciones })
+    return res.json({ usuarios, solicitudes, publicaciones, reportes })
   } catch (error) {
     console.error('Error obteniendo datos de dashboard:', error.message)
   return res.status(500).json({ message: 'Error al cargar datos del panel' })
@@ -1283,6 +1301,69 @@ app.post('/api/publisher/contact', async (req, res) => {
         return res.status(500).json({ message: 'Error al enviar mensaje' });
     }
 });
+
+
+// PATCH: Actualizar/Responder un ticket (solo admin)
+app.patch(
+  '/api/admin/reportes/:id',
+  [body('estado').optional().isIn(['pendiente', 'resuelto', 'cerrado']), body('respuesta').optional().isString()],
+  async (req, res) => {
+    const errors = validationResult(req)
+    if (!errors.isEmpty()) return res.status(400).json({ message: 'Datos inválidos', errors: errors.array() })
+
+    const actorRoleId = getActorRoleId(req)
+    if (![ROLE_IDS.SUPER_ADMIN, ROLE_IDS.ADMIN].includes(actorRoleId)) {
+      return res.status(403).json({ message: 'No tienes permisos para responder tickets' })
+    }
+
+    const { id } = req.params
+    const { respuesta, estado } = req.body
+
+    if (dataSource.mode === 'mock') {
+      const idx = mockReportes.findIndex((t) => String(t.id) === String(id))
+      if (idx === -1) return res.status(404).json({ message: 'Ticket no encontrado (mock)' })
+      if (typeof respuesta === 'string') mockReportes[idx].respuesta = respuesta
+      if (estado) mockReportes[idx].estado = estado
+      return res.json({ message: 'Ticket actualizado (mock)', ticket: mockReportes[idx] })
+    }
+
+    try {
+      // Construir query dinámico
+      const patches = []
+      const values = []
+      if (typeof respuesta === 'string') {
+        patches.push('respuesta = ?')
+        values.push(respuesta)
+      }
+      if (estado) {
+        patches.push('estado = ?')
+        values.push(estado)
+      }
+
+      if (!patches.length) return res.status(400).json({ message: 'No se enviaron campos para actualizar' })
+
+      // No intentamos actualizar columnas no existentes (p.ej. actualizado_en)
+      const sql = `UPDATE soporte_tickets SET ${patches.join(', ')} WHERE id = ? LIMIT 1`
+      values.push(id)
+
+      const [result] = await dataSource.pool.query(sql, values)
+      if (result.affectedRows === 0) return res.status(404).json({ message: 'Ticket no encontrado' })
+
+      const [rows] = await dataSource.pool.query(
+        `SELECT s.id, s.asunto, s.mensaje, s.estado, s.respuesta, DATE_FORMAT(s.creado_en, '%Y-%m-%d') as fecha, u.id AS usuario_id, u.nombre AS usuario_nombre, u.email AS usuario_email
+           FROM soporte_tickets s
+      LEFT JOIN usuarios u ON s.usuario_id = u.id
+          WHERE s.id = ? LIMIT 1`,
+        [id]
+      )
+
+      return res.json({ message: 'Ticket actualizado', ticket: rows[0] })
+    } catch (e) {
+      console.error('Error actualizando ticket:', e.message)
+      return res.status(500).json({ message: 'Error al actualizar ticket' })
+    }
+  }
+)
 
 // Inicializa el pool y levanta la API
 bootstrapPool().finally(() => {
