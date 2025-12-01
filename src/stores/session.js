@@ -26,12 +26,12 @@ export const useSessionStore = defineStore('session', {
     roleId: (state) => Number(state.session?.usuario?.rol_id ?? state.session?.usuario?.rolId ?? state.session?.usuario?.roleId),
     roleName: (state) => String(state.session?.usuario?.rol ?? state.session?.usuario?.role ?? '').toLowerCase(),
     isAdmin() {
-      return [1, 2, 'admin', 'administrador', 'moderador', 'moderator'].some((role) =>
+      return [1, 2, 'super administrador', 'administrador'].some((role) =>
         typeof role === 'number' ? this.roleId === role : this.roleName === role
       )
     },
     isPublisher() {
-      return ['publisher', 'publicador', 'vendedor', 3].some((role) =>
+      return [3, 'usuario'].some((role) =>
         typeof role === 'number' ? this.roleId === role : this.roleName === role
       )
     },

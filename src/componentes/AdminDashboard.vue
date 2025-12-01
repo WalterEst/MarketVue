@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useSessionStore } from '../stores/session'
 
 const usuarios = ref([])
 const solicitudesPublicacion = ref([])
@@ -26,6 +27,36 @@ const filtrosPublicaciones = reactive({
   visibilidad: ''
 })
 
+const publicacionEnProceso = ref(null)
+const usuarioEnProceso = ref(null)
+const sessionStore = useSessionStore()
+const esSuperAdmin = computed(
+  () => sessionStore.roleId === 1 || sessionStore.roleName === 'super administrador'
+)
+
+const usuariosFiltrados = computed(() => {
+  const termino = filtrosUsuarios.busqueda.toLowerCase()
+  const rol = filtrosUsuarios.rol
+  const estado = filtrosUsuarios.estado
+
+  return usuarios.value.filter((usuario) => {
+    const coincideBusqueda =
+      !termino ||
+      usuario.nombre?.toLowerCase().includes(termino) ||
+      usuario.apellido?.toLowerCase().includes(termino) ||
+      usuario.email?.toLowerCase().includes(termino)
+    const coincideRol = !rol || String(usuario.rol_id || usuario.rolId) === String(rol)
+    const coincideEstado = !estado || usuario.estado === estado
+
+    return coincideBusqueda && coincideRol && coincideEstado
+  })
+})
+
+const normalizarVisibilidad = (valor) => {
+  if (valor === 'rechazada') return 'oculta'
+  if (valor === 'pendiente_revision') return 'borrador'
+  return valor || 'publicada'
+}
 
 
 const router = useRouter()
@@ -52,6 +83,24 @@ const solicitudesFiltradas = computed(() => {
   })
 })
 
+const publicacionesFiltradas = computed(() => {
+  const termino = filtrosPublicaciones.busqueda.toLowerCase()
+  const visibilidad = filtrosPublicaciones.visibilidad
+
+  return publicaciones.value
+    .filter((publicacion) => {
+      const coincideBusqueda =
+        !termino ||
+        publicacion.titulo?.toLowerCase().includes(termino) ||
+        publicacion.autor?.toLowerCase().includes(termino) ||
+        publicacion.categoria?.toLowerCase().includes(termino)
+      const coincideVisibilidad = !visibilidad || publicacion.visibilidad === visibilidad
+
+      return coincideBusqueda && coincideVisibilidad
+    })
+    .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))
+})
+
 const registrarAccion = (texto) => {
   mensajeSistema.value = texto
   setTimeout(() => {
@@ -73,8 +122,12 @@ const sincronizarDashboard = async () => {
     solicitudesPublicacion.value = Array.isArray(payload.solicitudes)
       ? payload.solicitudes
       : []
-    publicaciones.value = Array.isArray(payload.publicaciones) ? payload.publicaciones : []
-
+    publicaciones.value = Array.isArray(payload.publicaciones)
+      ? payload.publicaciones.map((item) => ({
+          ...item,
+          visibilidad: normalizarVisibilidad(item.visibilidad || item.estado_publicacion)
+        }))
+      : []
     registrarAccion('Datos del panel sincronizados con backend.')
   } catch (error) {
     registrarAccion(error.message || 'Error al cargar datos. Revisa la conexión con el backend.')
@@ -127,7 +180,7 @@ const procesarRevision = async (solicitud, accion) => {
       autor: solicitud.autor,
       categoria: solicitud.categoria,
       fecha: solicitud.fecha,
-      visibilidad: estado_publicacion
+      visibilidad: normalizarVisibilidad(estado_publicacion)
     }
 
     if (existente >= 0) {
@@ -135,13 +188,13 @@ const procesarRevision = async (solicitud, accion) => {
         ...publicaciones.value[existente],
         ...registroBase,
         ...publicacionActualizada,
-        visibilidad: publicacionActualizada.estado_publicacion || registroBase.visibilidad
+        visibilidad: normalizarVisibilidad(publicacionActualizada.estado_publicacion || registroBase.visibilidad)
       })
     } else {
       publicaciones.value.unshift({
         ...registroBase,
         ...publicacionActualizada,
-        visibilidad: publicacionActualizada.estado_publicacion || registroBase.visibilidad
+        visibilidad: normalizarVisibilidad(publicacionActualizada.estado_publicacion || registroBase.visibilidad)
       })
     }
 
@@ -162,6 +215,60 @@ const irAlDetallePublicacion = (solicitud) => {
   router.push({ name: 'admin-publication-detail', params: { id: solicitud.id } })
 }
 
+const editarPublicacion = (publicacion) => {
+  if (!publicacion?.id) return
+  router.push({ name: 'admin-publication-detail', params: { id: publicacion.id }, query: { modo: 'editar' } })
+}
+
+const ocultarOEliminarPublicacion = async (publicacion, accion = 'ocultar') => {
+  if (!publicacion?.id || publicacionEnProceso.value) return
+  publicacionEnProceso.value = publicacion.id
+
+  try {
+    if (accion === 'eliminar') {
+      const response = await fetch(`${apiBase}/publisher/products/${publicacion.id}`, { method: 'DELETE' })
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}))
+        throw new Error(payload?.message || 'No fue posible eliminar la publicación')
+      }
+
+      publicaciones.value = publicaciones.value.filter((item) => item.id !== publicacion.id)
+      registrarAccion('Publicación eliminada correctamente.')
+      return
+    }
+
+    const response = await fetch(`${apiBase}/admin/publicaciones/${publicacion.id}/estado`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ estado_publicacion: 'oculta' })
+    })
+
+    const payload = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      throw new Error(payload?.message || 'No fue posible actualizar la visibilidad')
+    }
+
+    publicaciones.value = publicaciones.value.map((item) =>
+      item.id === publicacion.id
+        ? {
+            ...item,
+            ...payload.publicacion,
+            visibilidad: normalizarVisibilidad(payload.publicacion?.estado_publicacion || 'oculta')
+          }
+        : item
+    )
+
+    registrarAccion('Publicación marcada como oculta.')
+  } catch (error) {
+    registrarAccion(error.message || 'No se pudo completar la acción solicitada.')
+  } finally {
+    publicacionEnProceso.value = null
+  }
+}
+
+
 const irAlDetalleUsuario = (usuario) => {
   if (!usuario?.id) {
     registrarAccion('No pudimos abrir el detalle del usuario seleccionado.')
@@ -171,6 +278,57 @@ const irAlDetalleUsuario = (usuario) => {
   router.push({ name: 'admin-user-detail', params: { id: usuario.id } })
 }
 
+const confirmarYEliminarUsuario = async (usuario) => {
+  if (!usuario?.id) {
+    registrarAccion('No pudimos identificar al usuario seleccionado.')
+    return
+  }
+
+  if (!esSuperAdmin.value) {
+    registrarAccion('Solo el super administrador puede eliminar usuarios.')
+    return
+  }
+
+  const confirmado = window.confirm(
+    `¿Eliminar la cuenta de ${usuario.nombre}? Se eliminarán también todas sus publicaciones y no podrás deshacer esta acción.`
+  )
+
+  if (!confirmado) return
+
+  usuarioEnProceso.value = usuario.id
+
+  try {
+    const response = await fetch(`${apiBase}/admin/usuarios/${usuario.id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-admin-role': sessionStore.roleId || ''
+      }
+    })
+
+    const payload = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      throw new Error(payload?.message || 'No fue posible eliminar el usuario')
+    }
+
+    usuarios.value = usuarios.value.filter((item) => item.id !== usuario.id)
+    solicitudesPublicacion.value = solicitudesPublicacion.value.filter(
+      (item) => item.autor !== usuario.nombre && item.usuario_id !== usuario.id
+    )
+    const nombreCompleto = `${usuario.nombre || ''} ${usuario.apellido || ''}`.trim()
+    publicaciones.value = publicaciones.value.filter(
+      (item) => item.usuario_id !== usuario.id && item.autor !== nombreCompleto && item.autor !== usuario.nombre
+    )
+
+    registrarAccion(payload?.message || 'Usuario y publicaciones eliminados correctamente.')
+    await sincronizarDashboard()
+  } catch (error) {
+    registrarAccion(error.message || 'No se pudo eliminar el usuario. Inténtalo más tarde.')
+  } finally {
+    usuarioEnProceso.value = null
+  }
+}
 
 onMounted(sincronizarDashboard)
 </script>
@@ -253,8 +411,8 @@ onMounted(sincronizarDashboard)
         </label>
       </div>
 
-      <div v-if="usuarios.length" class="list">
-        <article v-for="usuario in usuarios" :key="usuario.id" class="list__item">
+      <div v-if="usuariosFiltrados.length" class="list">
+        <article v-for="usuario in usuariosFiltrados" :key="usuario.id" class="list__item">
           <div class="list__info">
             <p class="list__title">{{ usuario.nombre }}</p>
             <p class="muted">{{ usuario.email }} · Rol: {{ usuario.rol }}</p>
@@ -265,7 +423,14 @@ onMounted(sincronizarDashboard)
             </span>
             <div class="list__buttons">
               <button class="btn btn--ghost" type="button" @click="irAlDetalleUsuario(usuario)">Editar</button>
-              <button class="btn btn--ghost" type="button" @click="registrarAccion('Usuario marcado para bloqueo o eliminación.')">Bloquear/Eliminar</button>
+              <button
+                class="btn btn--ghost"
+                type="button"
+                :disabled="usuarioEnProceso === usuario.id || !esSuperAdmin"
+                @click="confirmarYEliminarUsuario(usuario)"
+              >
+                {{ usuarioEnProceso === usuario.id ? 'Eliminando...' : 'Eliminar' }}
+              </button>
             </div>
           </div>
         </article>
@@ -358,8 +523,8 @@ onMounted(sincronizarDashboard)
           </div>
         </header>
 
-        <div v-if="publicaciones.length" class="list">
-          <article v-for="publicacion in publicaciones" :key="publicacion.id" class="list__item">
+        <div v-if="publicacionesFiltradas.length" class="list">
+          <article v-for="publicacion in publicacionesFiltradas" :key="publicacion.id" class="list__item">
             <div class="list__info">
               <p class="list__title">{{ publicacion.titulo }}</p>
               <p class="muted">{{ publicacion.autor }} · {{ publicacion.fecha }}</p>
@@ -369,34 +534,20 @@ onMounted(sincronizarDashboard)
               <span class="pill pill--warning" v-else-if="publicacion.visibilidad === 'borrador'">Borrador</span>
               <span class="pill pill--error" v-else>Oculta</span>
               <div class="list__buttons">
-                <button class="btn btn--ghost" type="button" @click="registrarAccion('Edición de publicación en espera de backend.')">Editar</button>
-                <button class="btn btn--ghost" type="button" @click="registrarAccion('Publicación marcada para eliminar u ocultar.')">Eliminar/Ocultar</button>
+                <button class="btn btn--ghost" type="button" @click="editarPublicacion(publicacion)">Editar</button>
+                <button
+                  class="btn btn--ghost"
+                  type="button"
+                  :disabled="publicacionEnProceso === publicacion.id"
+                  @click="ocultarOEliminarPublicacion(publicacion, publicacion.visibilidad === 'oculta' ? 'eliminar' : 'ocultar')"
+                >
+                  {{ publicacionEnProceso === publicacion.id ? 'Procesando...' : publicacion.visibilidad === 'oculta' ? 'Eliminar' : 'Ocultar' }}
+                </button>
               </div>
             </div>
           </article>
         </div>
         <div v-else class="empty-state">No se encontraron publicaciones con los filtros seleccionados.</div>
-      </article>
-
-      <article class="card admin__notas">
-        <header class="panel__header">
-          <div>
-            <h2>Notas de moderación</h2>
-            <p class="muted">Deja constancia de decisiones tomadas por el equipo administrador.</p>
-          </div>
-        </header>
-        <textarea
-          v-model="notasModeracion"
-          rows="7"
-          class="notas"
-          placeholder="Redacta aquí los comentarios generales o instrucciones para otros administradores."
-        ></textarea>
-        <div class="form__actions">
-          <button class="btn btn--ghost" type="button" @click="notasModeracion = ''">Limpiar</button>
-          <button class="btn btn--primary" type="button" @click="registrarAccion('Notas listas para guardar en el backend cuando esté disponible.')">
-            Guardar notas
-          </button>
-        </div>
       </article>
     </section>
 

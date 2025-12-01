@@ -100,20 +100,55 @@ const dataSource = {
   pool: null
 }
 
+const ROLE_IDS = {
+  SUPER_ADMIN: 1,
+  ADMIN: 2,
+  USER: 3
+}
+
 const roleCapabilities = {
-  1: [
+  [ROLE_IDS.SUPER_ADMIN]: [
     'Acceso total al panel administrativo',
     'Aprobar o rechazar usuarios y publicaciones',
     'Modificar roles y permisos de otros administradores',
     'Revisar historial de acciones administrativas'
   ],
-  2: [
-    'Gestionar usuarios registrados',
+  [ROLE_IDS.ADMIN]: [
+    'Acceso administrativo sin edición de datos de usuarios',
+    'Aprobar o rechazar usuarios registrados',
     'Revisar y aprobar publicaciones pendientes',
-    'Editar información básica de la plataforma'
+    'Consultar historial de acciones administrativas'
   ],
   default: ['Navegar y publicar productos propios']
 }
+
+const allowedRoles = [ROLE_IDS.SUPER_ADMIN, ROLE_IDS.ADMIN, ROLE_IDS.USER]
+
+const normalizeRoleName = (roleId, fallbackName = '') => {
+  switch (Number(roleId)) {
+    case ROLE_IDS.SUPER_ADMIN:
+      return 'super administrador'
+    case ROLE_IDS.ADMIN:
+      return 'administrador'
+    case ROLE_IDS.USER:
+      return 'usuario'
+    default:
+      return fallbackName
+  }
+}
+
+const getActorRoleId = (req) => {
+  const rawRole =
+    req.headers['x-role-id'] ||
+    req.headers['x-user-role'] ||
+    req.headers['x-admin-role'] ||
+    req.headers['x-actor-role']
+
+  const roleId = Number(rawRole)
+
+  return Number.isInteger(roleId) && allowedRoles.includes(roleId) ? roleId : null
+}
+
 
 const buildUpdateQuery = (fields = {}) => {
   const entries = Object.entries(fields).filter(([, value]) => value !== undefined)
@@ -536,7 +571,7 @@ app.get('/api/admin/dashboard', async (_req, res) => {
 // Actualiza el estado de una publicación desde el panel admin
 app.patch(
   '/api/admin/publicaciones/:id/estado',
-  [body('estado_publicacion').isIn(['publicada', 'pendiente_revision', 'rechazada'])],
+  [body('estado_publicacion').isIn(['publicada', 'pendiente_revision', 'rechazada', 'oculta'])],
   async (req, res) => {
     const errors = validationResult(req)
 
@@ -638,9 +673,9 @@ app.get('/api/admin/usuarios/:id', async (req, res) => {
         rechazadas: 0
       },
       rolesDisponibles: [
-        { id: 1, nombre: 'superusuario' },
-        { id: 2, nombre: 'administrador' },
-        { id: 3, nombre: 'usuario' }
+        { id: ROLE_IDS.SUPER_ADMIN, nombre: normalizeRoleName(ROLE_IDS.SUPER_ADMIN) },
+        { id: ROLE_IDS.ADMIN, nombre: normalizeRoleName(ROLE_IDS.ADMIN) },
+        { id: ROLE_IDS.USER, nombre: normalizeRoleName(ROLE_IDS.USER) }
       ]
     })
   }
@@ -695,15 +730,22 @@ app.get('/api/admin/usuarios/:id', async (req, res) => {
     )
 
     const [rolesDisponibles] = await dataSource.pool.query(
-      'SELECT id, nombre FROM roles ORDER BY id'
+      'SELECT id, nombre FROM roles WHERE id IN (?, ?, ?) ORDER BY id',
+      [ROLE_IDS.SUPER_ADMIN, ROLE_IDS.ADMIN, ROLE_IDS.USER]
     )
+
+    const normalizedRoles = rolesDisponibles.map((rol) => ({
+      id: rol.id,
+      nombre: normalizeRoleName(rol.id, rol.nombre)
+    }))
+
 
     return res.json({
       usuario,
       permisos: roleCapabilities[usuario.rol_id] || roleCapabilities.default,
       publicaciones,
       resumenPublicaciones,
-      rolesDisponibles
+      rolesDisponibles: normalizedRoles
     })
   } catch (error) {
     console.error('Error obteniendo detalle de usuario:', error.message)
@@ -735,8 +777,33 @@ app.put(
     const { id } = req.params
     const { nombre, apellido, email, estado_registro, rol_id } = req.body
 
-    // Construye query dinámicamente
-    const update = buildUpdateQuery({ nombre, apellido, email, estado_registro, rol_id })
+    const actorRoleId = getActorRoleId(req)
+
+    if (!actorRoleId) {
+      return res.status(403).json({ message: 'Debes indicar tu rol para modificar usuarios' })
+    }
+
+    if (![ROLE_IDS.SUPER_ADMIN, ROLE_IDS.ADMIN].includes(actorRoleId)) {
+      return res.status(403).json({ message: 'No tienes permisos para modificar usuarios' })
+    }
+
+    const adminIntentoEdicion =
+      actorRoleId === ROLE_IDS.ADMIN &&
+      [nombre, apellido, email, rol_id].some((campo) => campo !== undefined)
+
+    if (adminIntentoEdicion) {
+      return res
+        .status(403)
+        .json({ message: 'Solo el super administrador puede editar datos o roles de usuarios' })
+    }
+
+    const update = buildUpdateQuery({
+      nombre: actorRoleId === ROLE_IDS.SUPER_ADMIN ? nombre : undefined,
+      apellido: actorRoleId === ROLE_IDS.SUPER_ADMIN ? apellido : undefined,
+      email: actorRoleId === ROLE_IDS.SUPER_ADMIN ? email : undefined,
+      estado_registro,
+      rol_id: actorRoleId === ROLE_IDS.SUPER_ADMIN ? rol_id : undefined
+    })
 
     if (!update) {
       return res.status(400).json({ message: 'No se enviaron campos para actualizar' })
@@ -784,6 +851,81 @@ app.put(
     }
   }
 )
+
+// Endpoint para eliminar usuarios y sus publicaciones (solo super admin)
+app.delete('/api/admin/usuarios/:id', async (req, res) => {
+  const { id } = req.params
+  const actorRoleId = getActorRoleId(req)
+
+  if (actorRoleId !== ROLE_IDS.SUPER_ADMIN) {
+    return res.status(403).json({ message: 'Solo el super administrador puede eliminar usuarios' })
+  }
+
+  if (dataSource.mode === 'mock') {
+    const index = mockUsers.findIndex((user) => String(user.id) === String(id))
+
+    if (index === -1) {
+      return res.status(404).json({ message: 'Usuario no encontrado' })
+    }
+
+    const usuario = mockUsers[index]
+    const nombreCompleto = `${usuario.nombre} ${usuario.apellido}`.trim()
+
+    mockUsers.splice(index, 1)
+
+    let publicacionesEliminadas = 0
+    for (let i = mockPublicaciones.length - 1; i >= 0; i -= 1) {
+      const pub = mockPublicaciones[i]
+      if (pub.usuario_id === usuario.id || pub.autor === nombreCompleto || pub.autor === usuario.nombre) {
+        mockPublicaciones.splice(i, 1)
+        publicacionesEliminadas += 1
+      }
+    }
+
+    return res.json({
+      message: 'Usuario y publicaciones eliminados (mock)',
+      usuarioId: usuario.id,
+      publicacionesEliminadas
+    })
+  }
+
+  let connection
+
+  try {
+    connection = await dataSource.pool.getConnection()
+    await connection.beginTransaction()
+
+    const [publicaciones] = await connection.query(
+      'DELETE FROM publicaciones WHERE usuario_id = ?',
+      [id]
+    )
+
+    const [result] = await connection.query('DELETE FROM usuarios WHERE id = ? LIMIT 1', [id])
+
+    if (result.affectedRows === 0) {
+      await connection.rollback()
+      return res.status(404).json({ message: 'Usuario no encontrado' })
+    }
+
+    await connection.commit()
+
+    return res.json({
+      message: 'Usuario y sus publicaciones eliminados correctamente',
+      usuarioId: Number(id),
+      publicacionesEliminadas: publicaciones.affectedRows
+    })
+  } catch (error) {
+    if (connection) {
+      await connection.rollback()
+    }
+    console.error('Error eliminando usuario:', error.message)
+    return res.status(500).json({ message: 'No fue posible eliminar el usuario' })
+  } finally {
+    if (connection) {
+      connection.release()
+    }
+  }
+})
 
 // Endpoint para registrar nuevos usuarios
 app.post(
@@ -1018,7 +1160,7 @@ app.get('/api/publisher/profile', async (req, res) => {
 
     const userId = req.query.userId || 1;
 
-    console.log(`🔍 Buscando perfil en BD para ID: ${userId}`);
+    console.log(`Buscando perfil en BD para ID: ${userId}`);
 
     if (dataSource.mode === 'mock') {
         return res.json(mockUsers[0]);
@@ -1033,15 +1175,15 @@ app.get('/api/publisher/profile', async (req, res) => {
         );
 
         if (rows.length > 0) {
-            console.log("✅ Usuario encontrado:", rows[0].nombre);
+            console.log("Usuario encontrado:", rows[0].nombre);
             return res.json(rows[0]);
         }
-        
-        console.warn("⚠️ Usuario no encontrado en la tabla 'usuarios'");
+
+        console.warn("Usuario no encontrado en la tabla 'usuarios'");
         return res.status(404).json({ message: 'Usuario no encontrado en BD' });
 
     } catch (e) { 
-        console.error("❌ ERROR CRÍTICO EN PERFIL:", e); 
+        console.error("ERROR CRÍTICO EN PERFIL:", e); 
         return res.status(500).json({message: 'Error al leer perfil en base de datos'}); 
     }
 });
@@ -1094,17 +1236,6 @@ app.get('/api/publisher/reports', async (req, res) => {
     if (dataSource.mode === 'mock') return res.json(mockReportes);
 
     try {
-        // SQL REAL (Asegúrate de crear esta tabla luego)
-        /* CREATE TABLE soporte_tickets (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            usuario_id INT,
-            asunto VARCHAR(255),
-            mensaje TEXT,
-            estado VARCHAR(50) DEFAULT 'pendiente',
-            respuesta TEXT,
-            creado_en DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-        */
         const [rows] = await dataSource.pool.query(
             `SELECT id, asunto, mensaje, estado, respuesta, DATE_FORMAT(creado_en, '%Y-%m-%d') as fecha 
              FROM soporte_tickets WHERE usuario_id = ? ORDER BY creado_en DESC`, 
@@ -1112,7 +1243,6 @@ app.get('/api/publisher/reports', async (req, res) => {
         );
         return res.json(rows);
     } catch (e) {
-        // Fallback a mock si no existe la tabla aún
         return res.json(mockReportes); 
     }
 });

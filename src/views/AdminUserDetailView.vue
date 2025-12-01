@@ -1,11 +1,14 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useSessionStore } from '../stores/session'
 
 const route = useRoute()
 const router = useRouter()
 
 const apiBase = import.meta.env.VITE_API_URL?.replace(/\/$/, '') || 'http://localhost:3000/api'
+
+const sessionStore = useSessionStore()
 
 const usuario = ref(null)
 const permisos = ref([])
@@ -17,17 +20,33 @@ const guardando = ref(false)
 const mensaje = ref('')
 const error = ref('')
 
+const roleId = computed(() => sessionStore.roleId)
+const esSuperAdmin = computed(() => roleId.value === 1)
+const esAdmin = computed(() => roleId.value === 2)
+const puedeEditarDatos = computed(() => esSuperAdmin.value)
+const puedeGestionarEstado = computed(() => esSuperAdmin.value || esAdmin.value)
+
 const nombreCompleto = computed(() => {
   if (!usuario.value) return ''
   return `${usuario.value.nombre || ''} ${usuario.value.apellido || ''}`.trim()
 })
+
+const buildRoleHeaders = () => {
+  const headers = {}
+  if (roleId.value) {
+    headers['X-Role-Id'] = roleId.value
+  }
+  return headers
+}
 
 const cargarUsuario = async () => {
   cargando.value = true
   error.value = ''
 
   try {
-    const response = await fetch(`${apiBase}/admin/usuarios/${route.params.id}`)
+    const response = await fetch(`${apiBase}/admin/usuarios/${route.params.id}`, {
+      headers: buildRoleHeaders()
+    })
     const data = await response.json().catch(() => ({}))
 
     if (!response.ok) {
@@ -53,21 +72,31 @@ const guardarCambios = async () => {
   guardando.value = true
   mensaje.value = ''
   error.value = ''
+  const payload = {}
 
-  const payload = {
-    nombre: usuario.value.nombre?.trim(),
-    apellido: usuario.value.apellido?.trim(),
-    email: usuario.value.email?.trim(),
-    estado_registro: usuario.value.estado_registro,
-    rol_id: usuario.value.rol_id ? Number(usuario.value.rol_id) : undefined
+  if (puedeEditarDatos.value) {
+    payload.nombre = usuario.value.nombre?.trim()
+    payload.apellido = usuario.value.apellido?.trim()
+    payload.email = usuario.value.email?.trim()
+    payload.rol_id = usuario.value.rol_id ? Number(usuario.value.rol_id) : undefined
+  }
+
+  if (puedeGestionarEstado.value) {
+    payload.estado_registro = usuario.value.estado_registro
+  }
+
+  if (!Object.keys(payload).length) {
+    error.value = 'No tienes permisos para actualizar este usuario.'
+    guardando.value = false
+    return
   }
 
   try {
     const response = await fetch(`${apiBase}/admin/usuarios/${usuario.value.id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  })
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...buildRoleHeaders() },
+      body: JSON.stringify(payload)
+    })
 
     const data = await response.json().catch(() => ({}))
 
@@ -133,6 +162,9 @@ onMounted(() => {
           <p class="muted panel__subtitle">
             Datos cargados desde MySQL. Puedes editar la información y guardar los cambios.
           </p>
+          <p v-if="esAdmin && !esSuperAdmin" class="muted panel__subtitle">
+            Como administrador solo puedes aprobar o rechazar cuentas; las ediciones quedan reservadas al super administrador.
+          </p>
         </div>
         <span class="badge">ID {{ usuario.id }}</span>
       </header>
@@ -141,22 +173,27 @@ onMounted(() => {
         <div class="form__grid">
           <label class="field">
             <span>Nombre</span>
-            <input v-model="usuario.nombre" type="text" placeholder="Nombre" />
+            <input v-model="usuario.nombre" type="text" placeholder="Nombre" :disabled="!puedeEditarDatos" />
           </label>
 
           <label class="field">
             <span>Apellido</span>
-            <input v-model="usuario.apellido" type="text" placeholder="Apellido" />
+            <input v-model="usuario.apellido" type="text" placeholder="Apellido" :disabled="!puedeEditarDatos" />
           </label>
 
           <label class="field field--wide">
             <span>Correo</span>
-            <input v-model="usuario.email" type="email" placeholder="Correo electrónico" />
+            <input
+              v-model="usuario.email"
+              type="email"
+              placeholder="Correo electrónico"
+              :disabled="!puedeEditarDatos"
+            />
           </label>
 
           <label class="field">
             <span>Rol</span>
-            <select v-model="usuario.rol_id">
+            <select v-model="usuario.rol_id" :disabled="!puedeEditarDatos">
               <option value="">Selecciona un rol</option>
               <option v-for="rol in rolesDisponibles" :key="rol.id" :value="rol.id">
                 {{ rol.nombre }}
@@ -166,7 +203,7 @@ onMounted(() => {
 
           <label class="field">
             <span>Estado de registro</span>
-            <select v-model="usuario.estado_registro">
+            <select v-model="usuario.estado_registro" :disabled="!puedeGestionarEstado">
               <option value="pendiente">Pendiente</option>
               <option value="aprobado">Aprobado</option>
               <option value="rechazado">Rechazado</option>
@@ -184,7 +221,7 @@ onMounted(() => {
           <button class="btn btn--ghost" type="button" @click="cargarUsuario" :disabled="cargando">
             Descartar cambios
           </button>
-          <button class="btn btn--primary" type="submit" :disabled="guardando">
+          <button class="btn btn--primary" type="submit" :disabled="guardando || !puedeGestionarEstado">
             {{ guardando ? 'Guardando...' : 'Guardar cambios' }}
           </button>
         </div>
