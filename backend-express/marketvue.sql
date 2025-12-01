@@ -9,8 +9,6 @@ CREATE TABLE roles (
     nombre          VARCHAR(50) NOT NULL UNIQUE
 ) ENGINE=InnoDB;
 
-INSERT INTO roles (nombre) VALUES ('superusuario'), ('administrador'), ('usuario');
-
 CREATE TABLE usuarios (
     id                INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     nombre            VARCHAR(100) NOT NULL,
@@ -101,5 +99,14 @@ CREATE TABLE IF NOT EXISTS soporte_tickets (
     mensaje TEXT NOT NULL,
     estado VARCHAR(50) DEFAULT 'pendiente',
     respuesta TEXT,
+    creado_en DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+-- 3. Crear la tabla resenas si no existe
+CREATE TABLE IF NOT EXISTS resenas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    publicacion_id INT NOT NULL,
+    usuario_id INT NOT NULL,
+    calificacion INT NOT NULL,
+    comentario TEXT,
     creado_en DATETIME DEFAULT CURRENT_TIMESTAMP
 );
