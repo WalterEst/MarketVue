@@ -119,14 +119,15 @@ const handleDelete = async (id) => {
   margin-bottom: 1rem;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
   border: 1px solid #e5e7eb;
-  
   display: grid;
-  grid-template-columns: 80px 1fr auto;
-  gap: 1.5rem;
+  grid-template-columns: 1fr; 
+  gap: 1rem;
   align-items: center;
+  text-align: center;
 }
 
 .card-thumb {
+  margin: 0 auto;
   width: 80px;
   height: 80px;
   border-radius: 6px;
@@ -137,6 +138,7 @@ const handleDelete = async (id) => {
   justify-content: center;
   border: 1px solid #e5e7eb;
 }
+
 .product-img { width: 100%; height: 100%; object-fit: cover; }
 .no-image-text { font-size: 0.7rem; color: #9ca3af; font-weight: 600; text-align: center; }
 
@@ -144,12 +146,21 @@ const handleDelete = async (id) => {
 .card-meta { display: flex; gap: 1rem; font-size: 0.9rem; color: #6b7280; }
 .price-tag { color: #059669; font-weight: 700; }
 
-.card-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 0.8rem; }
-
+.card-actions { 
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
+  gap: 0.8rem; 
+  width: 100%;
+}
 .status-badge { padding: 0.25rem 0.75rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
 
-.buttons-row { display: flex; gap: 0.5rem; }
-
+.buttons-row { 
+  display: flex; 
+  gap: 0.5rem; 
+  justify-content: center;
+  width: 100%;
+}
 
 .text-btn {
   padding: 0.4rem 0.8rem;
@@ -167,4 +178,29 @@ const handleDelete = async (id) => {
 .delete-btn:hover { border-color: #ef4444; color: #dc2626; background: #fef2f2; }
 
 .loading-state, .empty-state { text-align: center; padding: 3rem; color: #9ca3af; background: #f9fafb; border-radius: 8px; border: 1px dashed #e5e7eb; }
+
+/* --- RESPONSIVE DESKTOP --- */
+@media (min-width: 640px) {
+  .float-card {
+    grid-template-columns: 80px 1fr auto; /* 3 columnas */
+    text-align: left;
+    gap: 1.5rem;
+  }
+  
+
+
+
+  .sidebar { 
+    position: static;
+    transform: none; 
+    height: auto;
+    box-shadow: none;
+    display: block;
+  }
+  
+  .sidebar-overlay { display: none !important; } 
+  .content-area { padding: 2rem; }
+  .top-bar { padding: 1rem 2rem; }
+}
+
 </style>

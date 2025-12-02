@@ -135,11 +135,8 @@
 
 .pub-input, .pub-select, .pub-textarea {
   width: 100%;
-  padding: 0.75rem;
-  border: 1px solid var(--pub-border);
-  border-radius: 0.5rem;
-  font-size: 1rem;
-  background: #FAFAFA;
+  box-sizing: border-box; 
+  max-width: 100%;
 }
 
 .pub-input:focus, .pub-textarea:focus {
@@ -150,6 +147,7 @@
 
 .pub-grid-2 {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr; 
   gap: 1rem;
 }
+
