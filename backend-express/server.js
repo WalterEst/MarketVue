@@ -476,6 +476,22 @@ app.post(
         return res.status(401).json({ message: 'Credenciales incorrectas' })
       }
 
+      // Verifica que el registro esté aprobado antes de permitir el login
+      if (user.estado_registro !== 'aprobado') {
+        const mensajesEstado = {
+          pendiente: 'Tu registro aún está en revisión por un administrador.',
+          rechazado: 'Tu registro fue rechazado. Contacta a un administrador.',
+          bloqueado: 'Tu cuenta está bloqueada. Contacta a un administrador.'
+        }
+
+        const message = mensajesEstado[user.estado_registro] || 'Tu cuenta no está habilitada para iniciar sesión.'
+
+        return res.status(403).json({
+          message,
+          estado_registro: user.estado_registro
+        })
+      }
+
       // Marca inicio de sesión en BD
       if (dataSource.mode === 'database') {
         await dataSource.pool.query(

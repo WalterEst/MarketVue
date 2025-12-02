@@ -19,8 +19,8 @@ INSERT IGNORE INTO roles (id, nombre) VALUES
 -- ===== 3. INSERTAR USUARIOS DE PRUEBA =====
 INSERT IGNORE INTO usuarios (id, nombre, apellido, email, passwrd, rol_id, estado_registro, aprobado_en, creado_en) VALUES
 -- Admins
-(1, 'Carlos', 'Admin', 'admin@marketvue.cl', 'Admin123', 1, 'aprobado', NOW(), NOW()),
-(2, 'Laura', 'Moderadora', 'moderador@marketvue.cl', 'Mod12345', 2, 'aprobado', NOW(), NOW()),
+(1, 'Carlos', 'Super Admin', 'admin@marketvue.cl', 'Admin123', 1, 'aprobado', NOW(), NOW()),
+(2, 'Laura', 'Administradora', 'moderador@marketvue.cl', 'Mod12345', 2, 'aprobado', NOW(), NOW()),
 
 -- Vendedores/Usuarios activos
 (3, 'Walter', 'Vasquez', 'walter.vasquez@example.com', 'Password123', 3, 'aprobado', NOW(), NOW()),
