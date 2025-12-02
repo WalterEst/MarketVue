@@ -92,4 +92,23 @@
 .btn-products { color: #0284c7; border-left: 4px solid #0284c7; }
 .btn-profile { color: #7c3aed; border-left: 4px solid #7c3aed; }
 .btn-support { color: #d97706; border-left: 4px solid #d97706; } 
+
+/* --- RESPONSIVE DESKTOP --- */
+@media (min-width: 768px) {
+  .hamburger-btn { display: none; }
+  .sidebar-header-mobile { display: none; }
+  
+  .sidebar { 
+    position: static;
+    transform: none; 
+    height: auto;
+    box-shadow: none;
+    display: block;
+  }
+  
+  .sidebar-overlay { display: none !important; } /* Nunca mostrar overlay */
+  .content-area { padding: 2rem; }
+  .top-bar { padding: 1rem 2rem; }
+}
+
 </style>
