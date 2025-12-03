@@ -34,7 +34,7 @@ body {
   margin: 0;
   min-width: 320px;
   background-color: var(--bg);
-  overflow-x: hidden; /* Único cambio: evita scroll horizontal en móviles */
+  overflow-x: hidden; 
 }
 
 main {

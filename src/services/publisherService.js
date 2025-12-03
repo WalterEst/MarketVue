@@ -2,7 +2,6 @@ import api from './api';
 
 export default {
   
-  // Helper interno para leer el ID del usuario desde las distintas sesiones posibles
   _readStoredUserId() {
     try {
       const raw = localStorage.getItem('marketvue.session');
@@ -12,7 +11,6 @@ export default {
         if (usuario) return usuario.id || usuario.userId || usuario.usuario_id || null;
       }
     } catch (e) {
-      // noop
     }
 
     try {
@@ -22,7 +20,6 @@ export default {
         if (u && u.id) return u.id;
       }
     } catch (e) {
-      // noop
     }
 
     return null;
@@ -39,14 +36,12 @@ export default {
     return api.get(`/publisher/products/${id}`);
   },
 
-  // ESTA ES LA QUE FALTABA PARA QUE FUNCIONE EL SELECTOR
   getCategories() {
     return api.get('/categories');
   },
 
   createProduct(formData) {
     const userId = this._readStoredUserId();
-    // Si es FormData, añadir userId al body manualmente
     if (formData && typeof formData.append === 'function' && userId) {
       formData.append('userId', String(userId));
     }
@@ -54,7 +49,6 @@ export default {
   },
  
   updateProduct(id, data) {
-    // Nota: Si data es FormData, axios lo maneja, pero si necesitas userId en update, agrégalo aquí también
     return api.put(`/publisher/products/${id}`, data);
   },
 
@@ -65,7 +59,6 @@ export default {
   // --- PERFIL ---
 
   getProfile() {
-    // Leer la sesión estándar (`marketvue.session`) cuando exista
     let userId = null;
 
     try {
@@ -81,7 +74,6 @@ export default {
       console.warn('Error leyendo session desde storage', e);
     }
 
-    // Compatibilidad hacia atrás: si existe la clave `user`, usarla
     if (!userId) {
       try {
         const rawUser = localStorage.getItem('user');
@@ -94,8 +86,6 @@ export default {
       }
     }
 
-    // Si no hay userId, llamamos al endpoint sin query (el backend debería resolverlo por token);
-    // de lo contrario pasamos ?userId=<id>
     return api.get(userId ? `/publisher/profile?userId=${userId}` : `/publisher/profile`);
   },
 
@@ -123,7 +113,6 @@ export default {
           if (u && u.id) userId = u.id;
         }
       } catch (e) {
-        // noop
       }
     }
 

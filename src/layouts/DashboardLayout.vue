@@ -1,14 +1,12 @@
 <script setup>
 import { ref } from 'vue';
 
-// Estado para controlar el menú en móvil
 const isSidebarOpen = ref(false);
 
 const toggleSidebar = () => {
   isSidebarOpen.value = !isSidebarOpen.value;
 };
 
-// Cerrar sidebar al hacer clic en un link (para móvil)
 const closeSidebar = () => {
   isSidebarOpen.value = false;
 };
@@ -94,7 +92,6 @@ const closeSidebar = () => {
   display: block; 
 }
 
-/* Sidebar Móvil por defecto */
 .sidebar { 
   position: fixed;
   top: 0;
@@ -111,7 +108,7 @@ const closeSidebar = () => {
 }
 
 .sidebar.is-open {
-  transform: translateX(0); /* Visible */
+  transform: translateX(0); 
 }
 .sidebar-overlay {
   position: fixed;
@@ -127,7 +124,6 @@ const closeSidebar = () => {
 .router-link-active { background-color: #d1fae5; color: #064e3b; font-weight: 600; }
 .content-area { flex: 1; padding: 1rem; }
 
-/* Escritorio: Sidebar siempre visible */
 @media (min-width: 768px) { 
   .menu-btn { display: none; }
   .sidebar-overlay { display: none; }
