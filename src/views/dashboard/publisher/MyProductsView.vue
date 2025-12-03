@@ -3,16 +3,21 @@ import { onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { usePublisherStore } from '../../../stores/publisherStore';
 
+// Router para navegar hacia crear, editar o ver detalles
 const router = useRouter();
+// Store centralizado que maneja las publicaciones del publisher
 const store = usePublisherStore();
 
+// Computados que exponen la coleccion de productos y el estado de carga
 const myProducts = computed(() => store.products);
 const isLoading = computed(() => store.loading);
 
+// Al montar se solicita el listado para sincronizarlo con el backend
 onMounted(() => {
   store.fetchMyProducts();
 });
 
+// Traduce el estado tecnico a una etiqueta legible para el badge
 const getStatusLabel = (status) => {
   if (!status) return '';
   const map = { 
@@ -23,6 +28,7 @@ const getStatusLabel = (status) => {
   return map[status] || status;
 };
 
+// Asocia clases de color segun el estado de publicacion
 const getStatusClass = (status) => {
   const map = { 
     approved: 'bg-green-100 text-green-800', 
@@ -34,10 +40,12 @@ const getStatusClass = (status) => {
   return map[status] || 'bg-gray-100 text-gray-800';
 };
 
+// Navegacion hacia las distintas pantallas de gestion
 const createNew = () => router.push({ name: 'publisher-create-product' });
 const goToEdit = (id) => router.push({ name: 'publisher-edit-product', params: { id } });
 const goToDetail = (id) => router.push({ name: 'publisher-product-detail', params: { id } });
 
+// Solicita eliminar el producto y delega la accion al store
 const handleDelete = async (id) => {
   if (confirm('¿Estás seguro de eliminar esta publicación permanentemente?')) {
     await store.deleteProduct(id);

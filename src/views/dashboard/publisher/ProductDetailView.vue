@@ -3,17 +3,20 @@ import { onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import publisherService from '../../../services/publisherService'; 
 
+// Acceso al enrutador para leer el id y mover al usuario entre pantallas
 const route = useRoute();
 const router = useRouter();
 
+// Estado local con los datos del producto y flag de carga
 const product = ref(null);
 const isLoading = ref(true);
 
+// Al montar busca el producto por id y prepara la vista de detalle
 onMounted(async () => {
   try {
     const id = route.params.id;
     const { data } = await publisherService.getProductById(id);
-    console.log("Datos recibidos:", data); // Para depurar en consola F12
+    console.log("Datos recibidos:", data); 
     product.value = data;
   } catch (error) {
     console.error(error);
@@ -24,18 +27,21 @@ onMounted(async () => {
   }
 });
 
+// Devuelve la clase de badge segun el estado de revision
 const getStatusClass = (status) => {
   if (!status) return 'bg-gray-200 text-gray-600';
   const map = { approved: 'status-approved', pending: 'status-pending', rejected: 'status-rejected' };
   return map[status] || '';
 };
 
+// Mapea el estado a un texto que pueda leer el publisher
 const getStatusLabel = (status) => {
   if (!status) return 'Desconocido';
   const map = { approved: 'Publicado', pending: 'En Revisión', rejected: 'Rechazado' };
   return map[status] || String(status).charAt(0).toUpperCase() + String(status).slice(1);
 };
 
+// Normaliza la fecha para mostrar solo la parte legible
 const formatDate = (dateString) => {
   if (!dateString) return 'Reciente';
   if (dateString.includes('T')) {
@@ -44,12 +50,14 @@ const formatDate = (dateString) => {
   return dateString;
 };
 
+// Envia al formulario de edicion con el id actual
 const goToEdit = () => {
   if (product.value) {
     router.push({ name: 'publisher-edit-product', params: { id: product.value.id } });
   }
 };
 
+// Solicita confirmacion y elimina el producto delegando al servicio
 const handleDelete = async () => {
     if(confirm("¿Eliminar este producto?")) {
         try {

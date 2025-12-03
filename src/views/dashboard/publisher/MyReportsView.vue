@@ -3,10 +3,14 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import publisherService from '../../../services/publisherService';
 
+// Router para enviar al usuario hacia el formulario de contacto
 const router = useRouter();
+// Lista de reportes obtenidos desde el backend
 const reports = ref([]);
+// Flag de carga para mostrar estados vacios o skeleton
 const isLoading = ref(true);
 
+// Al montar se consulta el historial y se llena la lista local
 onMounted(async () => {
   try {
     const { data } = await publisherService.getMyReports();
@@ -18,6 +22,7 @@ onMounted(async () => {
   }
 });
 
+// Devuelve clases de color segun el estado del ticket de soporte
 const getStatusClass = (status) => {
   const map = {
     pendiente: 'bg-yellow-100 text-yellow-800',
@@ -27,6 +32,7 @@ const getStatusClass = (status) => {
   return map[status] || 'bg-gray-100';
 };
 
+// Abre la vista de contacto para crear un nuevo reporte
 const goToContact = () => router.push({ name: 'publisher-contact' });
 </script>
 

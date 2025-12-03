@@ -2,9 +2,11 @@
 import { ref, onMounted } from 'vue';
 import publisherService from '../../../services/publisherService';
 
+// Flags de carga para mostrar estados y deshabilitar acciones
 const isLoading = ref(false);
 const isSaving = ref(false);
 
+// Datos editables del perfil del publisher
 const form = ref({
   nombre: '',
   apellido: '',
@@ -14,6 +16,7 @@ const form = ref({
 });
 
 
+// Al montar, trae el perfil actual para rellenar el formulario base
 onMounted(async () => {
   isLoading.value = true;
   try {
@@ -29,6 +32,7 @@ onMounted(async () => {
   }
 });
 
+// Valida contrasenas y guarda los cambios en la cuenta del publisher
 const saveProfile = async () => {
  
   if (form.value.password && form.value.password !== form.value.confirmPassword) {

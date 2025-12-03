@@ -4,16 +4,20 @@ import { useRoute, useRouter } from 'vue-router';
 import { usePublisherStore } from '../../../stores/publisherStore';
 import publisherService from '../../../services/publisherService';
 
+// Herramientas de enrutamiento y store para mover el flujo y reutilizar acciones
 const route = useRoute();
 const router = useRouter();
 const store = usePublisherStore();
 
+// Determina si la vista trabaja en modo edicion tomando el id de la ruta
 const productId = route.params.id;
 const isEditMode = computed(() => !!productId);
 const isLoading = ref(false);
 
+// Listado de categorias disponibles para el selector
 const categories = ref([]);
 
+// Estado del formulario y recursos asociados a la imagen de portada
 const form = ref({
   name: '',
   price: '',
@@ -26,6 +30,7 @@ const portadaFile = ref(null);
 const portadaPreview = ref(null);
 const errores = ref({});
 
+// Maneja la seleccion de la portada generando un preview inmediato
 const handleFileUpload = (event) => {
   const file = event.target.files[0];
   if (file) {
@@ -34,6 +39,7 @@ const handleFileUpload = (event) => {
   }
 };
 
+// Carga categorias y, si corresponde, precarga los datos del producto a editar
 onMounted(async () => {
   isLoading.value = true;
   try {
@@ -58,6 +64,7 @@ onMounted(async () => {
   }
 });
 
+// Valida campos obligatorios antes de intentar guardar
 const validarFormulario = () => {
   errores.value = {};
   let esValido = true;
@@ -77,6 +84,7 @@ const validarFormulario = () => {
   return esValido;
 };
 
+// Construye el payload multipart y decide si crea o actualiza segun el modo
 const saveProduct = async () => {
   if (!validarFormulario()) return;
   isLoading.value = true;

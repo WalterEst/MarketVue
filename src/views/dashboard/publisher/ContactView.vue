@@ -3,14 +3,18 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import publisherService from '../../../services/publisherService';
 
+// Router para redirigir despues de enviar el formulario de soporte
 const router = useRouter();
+// Flag de actividad para deshabilitar el boton mientras se envia
 const isLoading = ref(false);
 
+// Datos controlados del formulario de contacto
 const form = ref({
   asunto: '',
   mensaje: ''
 });
 
+// Envia el mensaje de soporte validando que ambos campos esten completos
 const enviarMensaje = async () => {
   if (!form.value.asunto || !form.value.mensaje) {
     alert("Por favor completa todos los campos");
@@ -66,7 +70,6 @@ const enviarMensaje = async () => {
 <style scoped>
 @import '../../../estilos/PublisherDashboard.css';
 
-/* Contact card improvements */
 .pub-card { box-shadow: 0 8px 24px rgba(6,78,59,0.06); border-radius: 12px; }
 .pub-field label { font-weight: 700; color: #064e3b; }
 .pub-input, .pub-textarea { width:100%; padding: 0.8rem; border-radius: 8px; border: 1px solid #dbe7e0; font-size: 0.95rem; }
@@ -75,7 +78,6 @@ const enviarMensaje = async () => {
 .pub-btn:disabled { opacity:0.7 }
 .pub-card { max-width:720px; margin: 0 auto; }
 
-/* Responsive tweaks */
 @media (max-width:640px) {
   .pub-card { padding: 1rem }
   .pub-textarea { min-height:120px }

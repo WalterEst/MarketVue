@@ -2,8 +2,10 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+// Obtiene utilidades de enrutamiento para leer parametros y regresar
 const route = useRoute()
 const router = useRouter()
+// Estado principal de la vista: detalle cargado, flags y mensajes
 const publicacion = ref(null)
 const cargando = ref(false)
 const error = ref('')
@@ -12,8 +14,10 @@ const procesando = ref(false)
 const formulario = ref({ titulo: '', precio: '', descripcion: '' })
 const guardando = ref(false)
 
+// Punto base de la API tomando la configuracion de entorno o un valor por defecto
 const apiBase = import.meta.env.VITE_API_URL?.replace(/\/$/, '') || 'http://localhost:3000/api'
 
+// Clase dinamica para pintar el badge segun el estado de la publicacion
 const estadoClase = computed(() => {
   const estado = publicacion.value?.estado_publicacion
 
@@ -25,6 +29,7 @@ const estadoClase = computed(() => {
   }
 })
 
+// Texto legible para el estado mostrado en la cabecera
 const estadoTexto = computed(() => {
   const estado = publicacion.value?.estado_publicacion
   if (estado === 'publicada') return 'Publicada'
@@ -33,6 +38,8 @@ const estadoTexto = computed(() => {
   return estado || 'Sin estado'
 })
 
+
+// Descarga la publicacion y llena los campos editables para que el admin la revise
 const cargarDetalle = async () => {
   cargando.value = true
   error.value = ''
@@ -58,6 +65,7 @@ const cargarDetalle = async () => {
   }
 }
 
+// Llama al endpoint administrativo para aprobar o rechazar segun la eleccion del panel
 const actualizarEstado = async (estado_publicacion) => {
   if (!publicacion.value?.id || procesando.value) return
   procesando.value = true
@@ -88,6 +96,7 @@ const actualizarEstado = async (estado_publicacion) => {
   }
 }
 
+// Persiste ajustes realizados en el formulario reutilizando el endpoint de publisher
 const guardarCambios = async () => {
   if (!publicacion.value?.id || guardando.value) return
   guardando.value = true
@@ -126,6 +135,7 @@ const guardarCambios = async () => {
   }
 }
 
+// Restaura los campos a los valores originales traidos desde el backend
 const restaurarFormulario = () => {
   if (!publicacion.value) return
   formulario.value = {
@@ -135,10 +145,12 @@ const restaurarFormulario = () => {
   }
 }
 
+// Vuelve al historial de navegacion sin alterar el estado global
 const regresar = () => {
   router.back()
 }
 
+// Carga inicial al montar la vista para mostrar el detalle
 onMounted(cargarDetalle)
 </script>
 

@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useSessionStore } from '../stores/session'
 
+// Referencias de enrutamiento y base de la API para todas las peticiones
 const route = useRoute()
 const router = useRouter()
 
@@ -10,6 +11,7 @@ const apiBase = import.meta.env.VITE_API_URL?.replace(/\/$/, '') || 'http://loca
 
 const sessionStore = useSessionStore()
 
+// Estado con datos del usuario y colecciones relacionadas
 const usuario = ref(null)
 const permisos = ref([])
 const publicaciones = ref([])
@@ -20,17 +22,20 @@ const guardando = ref(false)
 const mensaje = ref('')
 const error = ref('')
 
+// Computados que derivan permisos segun el rol actual de la sesion
 const roleId = computed(() => sessionStore.roleId)
 const esSuperAdmin = computed(() => roleId.value === 1)
 const esAdmin = computed(() => roleId.value === 2)
 const puedeEditarDatos = computed(() => esSuperAdmin.value)
 const puedeGestionarEstado = computed(() => esSuperAdmin.value || esAdmin.value)
 
+// Construye el nombre que se muestra en el hero mezclando nombre y apellido
 const nombreCompleto = computed(() => {
   if (!usuario.value) return ''
   return `${usuario.value.nombre || ''} ${usuario.value.apellido || ''}`.trim()
 })
 
+// Adjunta el rol al header para que el backend valide permisos administrativos
 const buildRoleHeaders = () => {
   const headers = {}
   if (roleId.value) {
@@ -39,6 +44,7 @@ const buildRoleHeaders = () => {
   return headers
 }
 
+// Sincroniza la ficha del usuario con la base de datos y llena los listados auxiliares
 const cargarUsuario = async () => {
   cargando.value = true
   error.value = ''
@@ -66,6 +72,7 @@ const cargarUsuario = async () => {
   }
 }
 
+// Construye el payload segun permisos vigentes y persiste cambios en la API
 const guardarCambios = async () => {
   if (!usuario.value) return
 
@@ -114,10 +121,12 @@ const guardarCambios = async () => {
   }
 }
 
+// Regresa al panel principal sin depender del historial
 const volverAlPanel = () => {
   router.push({ name: 'admin' })
 }
 
+// Levanta la pantalla cargando todos los datos al montar
 onMounted(() => {
   cargarUsuario()
 })
@@ -412,7 +421,7 @@ onMounted(() => {
   padding: 1.25rem 1.5rem;
 }
 
-/* CARD BASE (respeta colores existentes) */
+/* CARD BASE  */
 .card {
   background: #ffffff;
   border-radius: 1rem;
